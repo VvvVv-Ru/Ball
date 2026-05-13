@@ -1,4 +1,4 @@
-import { level3PlayfieldConfig, level3SceneNotes } from "./level3.js";
+import { level3BallQueueConfig, level3PlayfieldConfig, level3SceneNotes } from "./level3.js";
 
 export const LEVEL_CONFIGS = {
   level3: {
@@ -31,6 +31,7 @@ export const LEVEL_CONFIGS = {
       ui: "ui-layer",
     },
     playfield: level3PlayfieldConfig,
+    ballQueue: level3BallQueueConfig,
     notes: level3SceneNotes,
   },
 };

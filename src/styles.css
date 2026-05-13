@@ -1,8 +1,9 @@
 :root {
   color-scheme: dark;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #0b1020;
+  background: #fefcea;
   color: #e6ebff;
+  --stage-grid-size: 18px;
 }
 
 * {
@@ -12,9 +13,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, #1c2a4d 0%, #0b1020 45%),
-    #0b1020;
+  background: #fefcea;
 }
 
 button {
@@ -84,7 +83,7 @@ button {
   aspect-ratio: 1080 / 1920;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, #0d1730 0%, #132348 100%);
+  background: #fefcea;
   border-radius: 28px;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
 }
@@ -104,9 +103,9 @@ button {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 120px 120px;
+    linear-gradient(#f6e5c6 1px, transparent 1px),
+    linear-gradient(90deg, #f6e5c6 1px, transparent 1px);
+  background-size: var(--stage-grid-size) var(--stage-grid-size);
   pointer-events: none;
 }
 
@@ -133,14 +132,29 @@ button {
 
 .playfield-surface {
   inset: 0;
+  z-index: 0;
   border-radius: 24px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 24px 60px rgba(37, 94, 125, 0.08);
+}
+
+.ball-queue-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ball-queue-item {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.ball-queue-item[data-is-head="true"] {
+  border: 4px solid #000000;
 }
 
 .playfield-borders {
   inset: 0;
+  z-index: 2;
 }
 
 .playfield-border-segment {
@@ -155,7 +169,8 @@ button {
 
 .scene-label,
 .hud-chip,
-.overlay-card {
+.overlay-card,
+.queue-status {
   position: absolute;
   border-radius: 18px;
   background: rgba(7, 10, 20, 0.5);
@@ -174,13 +189,16 @@ button {
 .scene-label p,
 .overlay-card h3,
 .overlay-card p,
-.overlay-card ul {
+.overlay-card ul,
+.queue-status h3,
+.queue-status ul {
   margin: 0;
 }
 
 .scene-label p,
 .overlay-card p,
 .overlay-card ul,
+.queue-status ul,
 .hud-chip {
   color: #b5c0ea;
 }
@@ -198,7 +216,15 @@ button {
   padding: 16px;
 }
 
-.overlay-card ul {
+.queue-status {
+  right: 32px;
+  top: 332px;
+  width: min(320px, calc(100% - 64px));
+  padding: 16px;
+}
+
+.overlay-card ul,
+.queue-status ul {
   margin-top: 10px;
   padding-left: 18px;
 }
@@ -229,6 +255,7 @@ button {
 
   .hud-chip,
   .overlay-card,
+  .queue-status,
   .scene-label,
   .overlay-actions {
     left: 16px;
@@ -236,8 +263,13 @@ button {
   }
 
   .hud-chip,
-  .overlay-card {
+  .overlay-card,
+  .queue-status {
     top: 16px;
+  }
+
+  .queue-status {
+    top: 244px;
   }
 
   .scene-label,

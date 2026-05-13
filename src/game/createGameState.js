@@ -1,3 +1,24 @@
+function cloneBallQueue(ballQueueConfig) {
+  if (!ballQueueConfig) {
+    return null;
+  }
+
+  const balls = ballQueueConfig.balls.map((ball) => ({
+    ...ball,
+    position: { ...ball.position },
+  }));
+  const headIndex = ballQueueConfig.headIndex ?? 0;
+  const currentHead = balls[headIndex] ?? null;
+
+  return {
+    ...ballQueueConfig,
+    headAnchor: { ...ballQueueConfig.headAnchor },
+    headIndex,
+    currentHeadColor: currentHead?.colorKey ?? null,
+    balls,
+  };
+}
+
 export function createGameState(levelConfig) {
   const playfield = levelConfig.playfield
     ? {
@@ -11,6 +32,7 @@ export function createGameState(levelConfig) {
         })),
       }
     : null;
+  const ballQueue = cloneBallQueue(levelConfig.ballQueue);
 
   return {
     levelId: levelConfig.id,
@@ -19,6 +41,7 @@ export function createGameState(levelConfig) {
     sceneMounted: false,
     world: {
       playfield,
+      ballQueue,
     },
     systems: {
       input: {

@@ -1,3 +1,5 @@
+import { renderLevel3BallQueue } from "./renderBallQueue.js";
+
 function createBorderSegment(border, segment) {
   const segmentElement = document.createElement("div");
   const isHorizontal = border.side === "top" || border.side === "bottom";
@@ -31,7 +33,7 @@ function createBorderElement(border, playfieldRect) {
   return borderElement;
 }
 
-export function renderLevel3Playfield(playfieldConfig) {
+export function renderLevel3Playfield(playfieldConfig, ballQueueState) {
   const playfieldRoot = document.createElement("div");
   playfieldRoot.className = "playfield-root";
   playfieldRoot.dataset.playfieldSize = `${playfieldConfig.size}`;
@@ -47,14 +49,17 @@ export function renderLevel3Playfield(playfieldConfig) {
   const borderLayer = document.createElement("div");
   borderLayer.className = "playfield-borders";
 
+  const ballQueue = renderLevel3BallQueue(ballQueueState, playfieldConfig.rect);
+
   playfieldConfig.borders.forEach((border) => {
     borderLayer.appendChild(createBorderElement(border, playfieldConfig.rect));
   });
 
-  playfieldRoot.append(playfieldSurface, borderLayer);
+  playfieldRoot.append(playfieldSurface, ballQueue.element, borderLayer);
 
   return {
     element: playfieldRoot,
     borderLayer,
+    ballQueueLayer: ballQueue.element,
   };
 }
