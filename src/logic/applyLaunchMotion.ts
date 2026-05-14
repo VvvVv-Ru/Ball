@@ -1,5 +1,6 @@
 import type { GameState, InputDirection, Vector2 } from "../types/game";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
+import { resolveHeadMatch } from "./headMatchResolution";
 
 const DIRECTION_VECTORS: Record<InputDirection, Vector2> = {
   up: { x: 0, y: -1 },
@@ -216,35 +217,49 @@ export function advanceHeadMotion(gameState: GameState, now: number) {
   const nextPositions = queueOffsets.map((offset) => samplePointOnPath(nextPath, offset));
   const maxQueueStretch = getMaxQueueStretch(nextPositions, queueOffsets);
 
+  const collisionState = collisionResult
+    ? {
+        lastCollisionBorderId: collisionResult.collision.borderId,
+        lastCollisionSide: collisionResult.collision.side,
+        lastCollisionType: collisionResult.collision.type,
+        lastCollisionBorderColor: collisionResult.collision.borderColor,
+        lastCollisionHeadColor: collisionResult.collision.headColor,
+        lastReflectionBefore: collisionResult.collision.beforeVector,
+        lastReflectionAfter: collisionResult.collision.afterVector,
+      }
+    : gameState.collision;
+
+  const baseNextGameState = {
+    ...gameState,
+    ballQueue: {
+      ...gameState.ballQueue,
+      balls: gameState.ballQueue.balls.map((ball, index) => ({
+        ...ball,
+        position: nextPositions[index] ?? ball.position,
+      })),
+    },
+    motion: {
+      ...gameState.motion,
+      currentDirection: nextDirection,
+      lastTickAt: now,
+      isRedirectCooling,
+      headPath: nextPath,
+      maxQueueStretch,
+    },
+    collision: collisionState,
+  };
+
+  if (collisionResult?.collision.type === "match") {
+    return {
+      nextGameState: resolveHeadMatch(baseNextGameState, resolvedHeadPosition, collisionResult.collision.borderId),
+      collision: collisionResult.collision,
+    };
+  }
+
   return {
     nextGameState: {
       ...gameState,
-      ballQueue: {
-        ...gameState.ballQueue,
-        balls: gameState.ballQueue.balls.map((ball, index) => ({
-          ...ball,
-          position: nextPositions[index] ?? ball.position,
-        })),
-      },
-      motion: {
-        ...gameState.motion,
-        currentDirection: nextDirection,
-        lastTickAt: now,
-        isRedirectCooling,
-        headPath: nextPath,
-        maxQueueStretch,
-      },
-      collision: collisionResult
-        ? {
-            lastCollisionBorderId: collisionResult.collision.borderId,
-            lastCollisionSide: collisionResult.collision.side,
-            lastCollisionType: collisionResult.collision.type,
-            lastCollisionBorderColor: collisionResult.collision.borderColor,
-            lastCollisionHeadColor: collisionResult.collision.headColor,
-            lastReflectionBefore: collisionResult.collision.beforeVector,
-            lastReflectionAfter: collisionResult.collision.afterVector,
-          }
-        : gameState.collision,
+      ...baseNextGameState,
     },
     collision: collisionResult?.collision ?? null,
   };

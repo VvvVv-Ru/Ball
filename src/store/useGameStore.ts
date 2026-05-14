@@ -243,6 +243,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         });
       }
 
+      if (collision?.type === "match" && collision.borderColor) {
+        gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MATCH, {
+          borderId: collision.borderId,
+          color: collision.borderColor,
+          headIndex: state.gameState.headIndex,
+        });
+      }
+
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
 
       return {

@@ -119,6 +119,9 @@ export function Board({ gameState }: { gameState: GameState }) {
             </span>
             <span>headIndex: {gameState.headIndex}</span>
             <span>headColor: {gameState.currentHeadColor ?? "-"}</span>
+            <span>pendingBorderId: {gameState.rule.pendingBorderId ?? "-"}</span>
+            <span>removedBallId: {gameState.rule.lastRemovedBallId ?? "-"}</span>
+            <span>removedBallOrder: {gameState.rule.lastRemovedBallOrder ?? "-"}</span>
             <span>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</span>
             <span>lastCollisionType: {gameState.collision.lastCollisionType ?? "-"}</span>
             <span>lastCollisionBorderId: {gameState.collision.lastCollisionBorderId ?? "-"}</span>

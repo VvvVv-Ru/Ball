@@ -81,5 +81,12 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       lastReflectionBefore: null,
       lastReflectionAfter: null,
     },
+    rule: {
+      pendingBorderId: null,
+      pendingBorderSide: null,
+      pendingBorderColor: null,
+      lastRemovedBallId: null,
+      lastRemovedBallOrder: null,
+    },
   };
 }

@@ -82,11 +82,15 @@ export function GamePlayView() {
     const unsubscribeMismatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, (payload) => {
       setLatestUiEvent(`ON_COLLISION_MISMATCH:${payload.borderId}/${payload.expectedColor}`);
     });
+    const unsubscribeMatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, (payload) => {
+      setLatestUiEvent(`ON_COLLISION_MATCH:${payload.borderId}/${payload.color}`);
+    });
 
     return () => {
       unsubscribeStateChanged();
       unsubscribeAimUpdate();
       unsubscribeMismatch();
+      unsubscribeMatch();
     };
   }, []);
 
@@ -222,6 +226,9 @@ export function GamePlayView() {
           <li>remainingBalls: {remainingBalls}</li>
           <li>remainingTargets: {remainingTargets}</li>
           <li>latestUiEvent: {latestUiEvent}</li>
+          <li>pendingBorderId: {gameState.rule.pendingBorderId ?? "-"}</li>
+          <li>removedBallId: {gameState.rule.lastRemovedBallId ?? "-"}</li>
+          <li>removedBallOrder: {gameState.rule.lastRemovedBallOrder ?? "-"}</li>
           <li>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</li>
           <li>lastCollisionType: {gameState.collision.lastCollisionType ?? "-"}</li>
           <li>lastCollisionBorderId: {gameState.collision.lastCollisionBorderId ?? "-"}</li>

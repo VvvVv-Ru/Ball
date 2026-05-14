@@ -152,6 +152,14 @@ export interface CollisionState {
   lastReflectionAfter: Vector2 | null;
 }
 
+export interface RuleState {
+  pendingBorderId: string | null;
+  pendingBorderSide: BorderSide | null;
+  pendingBorderColor: BallColorKey | null;
+  lastRemovedBallId: string | null;
+  lastRemovedBallOrder: number | null;
+}
+
 export interface GameState {
   levelId: LevelId;
   status: "ready";
@@ -167,6 +175,7 @@ export interface GameState {
   input: InputState;
   motion: MotionState;
   collision: CollisionState;
+  rule: RuleState;
 }
 
 export interface BorderEditorState {
