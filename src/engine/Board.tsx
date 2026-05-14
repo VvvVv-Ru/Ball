@@ -235,6 +235,10 @@ export function Board(
             <span>clearReason: {gameState.clearReason ?? "-"}</span>
             <span>failReason: {gameState.failReason ?? "-"}</span>
             <span>isLaunched: {String(gameState.motion.isLaunched)}</span>
+            <span>velocity: {formatVector(gameState.motion.velocity)}</span>
+            <span>gravity: {formatVector(gameState.motion.gravity)}</span>
+            <span>maxSubstepMs: {gameState.motion.maxSubstepMs}</span>
+            <span>bounceRestitution: {gameState.motion.bounceRestitution}</span>
             <span>currentVector: {formatVector(gameState.motion.currentVector)}</span>
             <span>currentSpeed: {gameState.motion.currentSpeed}</span>
             <span>queueLength: {gameState.ballQueue.balls.length}</span>

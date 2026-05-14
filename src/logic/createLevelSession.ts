@@ -48,6 +48,12 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
         minSwipeDistance: levelConfig.gameplay.tuning.swipeLaunch.minSwipeDistance,
         maxSwipeDistance: levelConfig.gameplay.tuning.swipeLaunch.maxSwipeDistance,
       },
+      projectile: {
+        enabled: levelConfig.gameplay.tuning.projectile.enabled,
+        gravity: { ...levelConfig.gameplay.tuning.projectile.gravity },
+        maxSubstepMs: levelConfig.gameplay.tuning.projectile.maxSubstepMs,
+        bounceRestitution: levelConfig.gameplay.tuning.projectile.bounceRestitution,
+      },
       borderImpactShake: {
         enabled: levelConfig.gameplay.tuning.borderImpactShake.enabled,
         light: { ...levelConfig.gameplay.tuning.borderImpactShake.light },
@@ -124,6 +130,12 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     },
     motion: {
       isLaunched: false,
+      velocity: { x: 0, y: 0 },
+      gravity: levelConfig.gameplay.tuning.projectile.enabled
+        ? { ...levelConfig.gameplay.tuning.projectile.gravity }
+        : { x: 0, y: 0 },
+      maxSubstepMs: levelConfig.gameplay.tuning.projectile.maxSubstepMs,
+      bounceRestitution: levelConfig.gameplay.tuning.projectile.bounceRestitution,
       currentVector: null,
       currentSpeed: 0,
       lastTickAt: null,

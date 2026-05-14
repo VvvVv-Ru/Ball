@@ -507,6 +507,10 @@ export function GamePlayView() {
           <li>minSwipeDistance: {gameState.tuningConfig.swipeLaunch.minSwipeDistance}</li>
           <li>maxSwipeDistance: {gameState.tuningConfig.swipeLaunch.maxSwipeDistance}</li>
           <li>isLaunched: {String(motionState?.isLaunched ?? false)}</li>
+          <li>velocity: {formatVector(motionState?.velocity)}</li>
+          <li>gravity: {formatVector(motionState?.gravity)}</li>
+          <li>maxSubstepMs: {motionState?.maxSubstepMs ?? 0}</li>
+          <li>bounceRestitution: {motionState?.bounceRestitution ?? 0}</li>
           <li>currentVector: {formatVector(motionState?.currentVector)}</li>
           <li>currentSpeed: {motionState?.currentSpeed ?? 0}</li>
           <li>queueLength: {gameState.ballQueue.balls.length}</li>

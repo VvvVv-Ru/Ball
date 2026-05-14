@@ -2,136 +2,19 @@ import type { BorderImpactKind, BorderSide, GameState, ShakeIntensity, Vector2 }
 import { resolveDelayedBorderTrigger } from "./delayedBorderResolution";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
 import { resolveHeadMatch } from "./headMatchResolution";
+import {
+  addVectors,
+  areVectorsEffectivelySame,
+  getMaxQueueStretch,
+  getQueueOffsets,
+  getSpeedFromVelocity,
+  getVectorFromVelocity,
+  normalizeVector,
+  samplePointOnPath,
+  scaleVector,
+  trimPath,
+} from "./motionMath";
 import { resolveSwipeLaunchSpeed } from "./swipeLaunchSpeed";
-
-function normalizeVector(vector: Vector2) {
-  const magnitude = Math.hypot(vector.x, vector.y);
-
-  if (magnitude <= 0) {
-    return null;
-  }
-
-  return {
-    x: vector.x / magnitude,
-    y: vector.y / magnitude,
-  };
-}
-
-function areVectorsEffectivelySame(left: Vector2 | null, right: Vector2 | null) {
-  if (!left || !right) {
-    return false;
-  }
-
-  return Math.abs(left.x - right.x) <= 0.0001 && Math.abs(left.y - right.y) <= 0.0001;
-}
-
-function getLinkDistance(gameState: GameState, leaderIndex: number, followerIndex: number) {
-  const leader = gameState.ballQueue.balls[leaderIndex];
-  const follower = gameState.ballQueue.balls[followerIndex];
-
-  if (!leader || !follower) {
-    return 0;
-  }
-
-  return leader.radius + follower.radius + gameState.ballQueue.surfaceGap;
-}
-
-function getQueueOffsets(gameState: GameState) {
-  const offsets: number[] = [0];
-
-  for (let index = 1; index < gameState.ballQueue.balls.length; index += 1) {
-    offsets[index] = offsets[index - 1] + getLinkDistance(gameState, index - 1, index);
-  }
-
-  return offsets;
-}
-
-function trimPath(path: Vector2[], requiredLength: number) {
-  if (path.length <= 1) {
-    return path;
-  }
-
-  const trimmedPath: Vector2[] = [{ ...path[0] }];
-  let accumulated = 0;
-
-  for (let index = 0; index < path.length - 1; index += 1) {
-    const current = path[index];
-    const next = path[index + 1];
-    const segmentLength = Math.hypot(next.x - current.x, next.y - current.y);
-
-    if (segmentLength === 0) {
-      continue;
-    }
-
-    if (accumulated + segmentLength <= requiredLength) {
-      trimmedPath.push({ ...next });
-      accumulated += segmentLength;
-      continue;
-    }
-
-    const remaining = Math.max(0, requiredLength - accumulated);
-    const ratio = remaining / segmentLength;
-
-    trimmedPath.push({
-      x: current.x + (next.x - current.x) * ratio,
-      y: current.y + (next.y - current.y) * ratio,
-    });
-    return trimmedPath;
-  }
-
-  return trimmedPath;
-}
-
-function samplePointOnPath(path: Vector2[], distance: number) {
-  if (path.length === 0) {
-    return { x: 0, y: 0 };
-  }
-
-  if (distance <= 0 || path.length === 1) {
-    return { ...path[0] };
-  }
-
-  let traveled = 0;
-
-  for (let index = 0; index < path.length - 1; index += 1) {
-    const start = path[index];
-    const end = path[index + 1];
-    const segmentLength = Math.hypot(end.x - start.x, end.y - start.y);
-
-    if (segmentLength === 0) {
-      continue;
-    }
-
-    if (traveled + segmentLength >= distance) {
-      const ratio = (distance - traveled) / segmentLength;
-
-      return {
-        x: start.x + (end.x - start.x) * ratio,
-        y: start.y + (end.y - start.y) * ratio,
-      };
-    }
-
-    traveled += segmentLength;
-  }
-
-  return { ...path[path.length - 1] };
-}
-
-function getMaxQueueStretch(positions: Vector2[], offsets: number[]) {
-  let maxStretch = 0;
-
-  for (let index = 1; index < positions.length; index += 1) {
-    const expectedDistance = offsets[index] - offsets[index - 1];
-    const actualDistance = Math.hypot(
-      positions[index].x - positions[index - 1].x,
-      positions[index].y - positions[index - 1].y,
-    );
-
-    maxStretch = Math.max(maxStretch, Math.abs(actualDistance - expectedDistance));
-  }
-
-  return maxStretch;
-}
 
 function getRedirectCoolingState(gameState: GameState, now: number) {
   const lastRedirectAt = gameState.motion.lastRedirectAt;
@@ -227,6 +110,14 @@ interface AdvanceHeadMotionResult {
   } | null;
 }
 
+function getProjectileGravity(gameState: GameState) {
+  return gameState.tuningConfig.projectile.enabled ? gameState.motion.gravity : { x: 0, y: 0 };
+}
+
+function getTailBufferDistance(speed: number) {
+  return Math.max(speed, 1);
+}
+
 export function applyLaunchMotion(
   gameState: GameState,
   vector: Vector2,
@@ -263,11 +154,17 @@ export function applyLaunchMotion(
     };
   }
 
+  const nextVelocity = {
+    x: normalizedVector.x * resolvedSpeed,
+    y: normalizedVector.y * resolvedSpeed,
+  };
+
   return {
     ...gameState,
     motion: {
       ...gameState.motion,
       isLaunched: true,
+      velocity: nextVelocity,
       currentVector: normalizedVector,
       currentSpeed: resolvedSpeed,
       lastTickAt: occurredAt,
@@ -316,29 +213,58 @@ export function advanceHeadMotion(
     return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
-  const vector = gameState.motion.currentVector;
-  const moveDistance = gameState.motion.currentSpeed * deltaSeconds;
-  const nextHeadPosition = {
-    x: headBall.position.x + vector.x * moveDistance,
-    y: headBall.position.y + vector.y * moveDistance,
-  };
-  const collisionResult = resolveHeadBorderCollision(gameState, nextHeadPosition);
-  const isDelayedBorderTrigger = Boolean(
-    collisionResult &&
-    gameState.rule.delayedBorderState === "pending" &&
-    gameState.rule.pendingBorderId &&
-    collisionResult.collision.borderId === gameState.rule.pendingBorderId,
-  );
-  const borderImpact = collisionResult ? getBorderImpact(collisionResult, gameState, now, isDelayedBorderTrigger) : null;
-  const resolvedHeadPosition = collisionResult?.resolvedPosition ?? nextHeadPosition;
-  const nextVector = collisionResult?.collision.type === "mismatch" || isDelayedBorderTrigger
-    ? (collisionResult?.nextVector ?? gameState.motion.currentVector)
-    : gameState.motion.currentVector;
-  const nextPath = trimPath(
-    [{ ...resolvedHeadPosition }, ...gameState.motion.headPath],
-    getQueueOffsets(gameState)[gameState.ballQueue.balls.length - 1] + gameState.motion.currentSpeed,
-  );
+  const gravity = getProjectileGravity(gameState);
+  const maxSubstepSeconds = Math.max(gameState.motion.maxSubstepMs, 1) / 1000;
+  const substepCount = Math.max(1, Math.ceil(deltaSeconds / maxSubstepSeconds));
+  const substepSeconds = deltaSeconds / substepCount;
+  let currentPosition = { ...headBall.position };
+  let currentVelocity = { ...gameState.motion.velocity };
+  let collisionResult: ResolvedHeadCollisionResult = null;
+  let isDelayedBorderTrigger = false;
+  let borderImpact: AdvanceHeadMotionResult["borderImpact"] = null;
+  const pathSamples: Vector2[] = [];
+
+  for (let step = 0; step < substepCount; step += 1) {
+    const integratedVelocity = addVectors(currentVelocity, scaleVector(gravity, substepSeconds));
+    const nextHeadPosition = addVectors(currentPosition, scaleVector(integratedVelocity, substepSeconds));
+    const stepCollision = resolveHeadBorderCollision(
+      gameState,
+      currentPosition,
+      nextHeadPosition,
+      integratedVelocity,
+      gameState.motion.bounceRestitution,
+    );
+
+    if (stepCollision) {
+      collisionResult = stepCollision;
+      isDelayedBorderTrigger = Boolean(
+        gameState.rule.delayedBorderState === "pending"
+        && gameState.rule.pendingBorderId
+        && stepCollision.collision.borderId === gameState.rule.pendingBorderId,
+      );
+      borderImpact = getBorderImpact(stepCollision, gameState, now, isDelayedBorderTrigger);
+      currentPosition = { ...stepCollision.resolvedPosition };
+      currentVelocity = stepCollision.collision.type === "mismatch" || isDelayedBorderTrigger
+        ? { ...stepCollision.nextVelocity }
+        : { ...integratedVelocity };
+      pathSamples.unshift({ ...currentPosition });
+      break;
+    }
+
+    currentPosition = { ...nextHeadPosition };
+    currentVelocity = { ...integratedVelocity };
+    pathSamples.unshift({ ...currentPosition });
+  }
+
+  const resolvedHeadPosition = collisionResult?.resolvedPosition ?? currentPosition;
+  const nextVelocity = currentVelocity;
+  const nextVector = getVectorFromVelocity(nextVelocity);
+  const nextSpeed = getSpeedFromVelocity(nextVelocity);
   const queueOffsets = getQueueOffsets(gameState);
+  const nextPath = trimPath(
+    [...pathSamples, ...gameState.motion.headPath],
+    (queueOffsets[queueOffsets.length - 1] ?? 0) + getTailBufferDistance(nextSpeed),
+  );
   const nextPositions = queueOffsets.map((offset) => samplePointOnPath(nextPath, offset));
   const maxQueueStretch = getMaxQueueStretch(nextPositions, queueOffsets);
 
@@ -365,7 +291,9 @@ export function advanceHeadMotion(
     },
     motion: {
       ...gameState.motion,
+      velocity: nextVelocity,
       currentVector: nextVector,
+      currentSpeed: nextSpeed,
       lastTickAt: now,
       isRedirectCooling,
       headPath: nextPath,

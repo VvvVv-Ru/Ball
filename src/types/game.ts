@@ -96,6 +96,13 @@ export interface SwipeLaunchTuningConfig {
   maxSwipeDistance: number;
 }
 
+export interface ProjectileTuningConfig {
+  enabled: boolean;
+  gravity: Vector2;
+  maxSubstepMs: number;
+  bounceRestitution: number;
+}
+
 export interface ScreenShakeProfile {
   amplitude: number;
   durationMs: number;
@@ -167,6 +174,7 @@ export interface SoftBallConfig {
 
 export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
+  projectile: ProjectileTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
   cameraFollow: CameraFollowConfig;
   borderImpactRing: BorderImpactRingConfig;
@@ -276,6 +284,10 @@ export interface PointerGesturePayload {
 
 export interface MotionState {
   isLaunched: boolean;
+  velocity: Vector2;
+  gravity: Vector2;
+  maxSubstepMs: number;
+  bounceRestitution: number;
   currentVector: Vector2 | null;
   currentSpeed: number;
   lastTickAt: number | null;

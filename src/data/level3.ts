@@ -13,10 +13,19 @@ const LEVEL3_POINTER_HOLD_STILL_MAX_MS = 300;
 const LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA = 6;
 const LEVEL3_REDIRECT_COOLDOWN_MS = 80;
 const LEVEL3_SWIPE_LAUNCH_TUNING = {
-  minSpeed: 1100,
+  minSpeed: 1800,
   maxSpeed: 4000,
   minSwipeDistance: 10,
   maxSwipeDistance: 240,
+} as const;
+const LEVEL3_PROJECTILE_TUNING = {
+  enabled: true,
+  gravity: {
+    x: 0,
+    y: 1200,
+  },
+  maxSubstepMs: 8,
+  bounceRestitution: 0.8,
 } as const;
 const LEVEL3_BORDER_IMPACT_SHAKE = {
   enabled: true,
@@ -230,6 +239,12 @@ export const level3Config: LevelConfig = {
         minSwipeDistance: LEVEL3_SWIPE_LAUNCH_TUNING.minSwipeDistance,
         maxSwipeDistance: LEVEL3_SWIPE_LAUNCH_TUNING.maxSwipeDistance,
       },
+      projectile: {
+        enabled: LEVEL3_PROJECTILE_TUNING.enabled,
+        gravity: { ...LEVEL3_PROJECTILE_TUNING.gravity },
+        maxSubstepMs: LEVEL3_PROJECTILE_TUNING.maxSubstepMs,
+        bounceRestitution: LEVEL3_PROJECTILE_TUNING.bounceRestitution,
+      },
       borderImpactShake: {
         enabled: LEVEL3_BORDER_IMPACT_SHAKE.enabled,
         light: { ...LEVEL3_BORDER_IMPACT_SHAKE.light },
@@ -303,6 +318,7 @@ export const LEVEL3_CONSTANTS = {
   directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
   redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
   swipeLaunch: LEVEL3_SWIPE_LAUNCH_TUNING,
+  projectile: LEVEL3_PROJECTILE_TUNING,
   borderImpactShake: LEVEL3_BORDER_IMPACT_SHAKE,
   cameraFollow: LEVEL3_CAMERA_FOLLOW,
   borderImpactRing: LEVEL3_BORDER_IMPACT_RING,

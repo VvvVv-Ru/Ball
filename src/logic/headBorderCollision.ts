@@ -1,4 +1,5 @@
 import type { BallColorKey, Border, CollisionType, GameState, Vector2 } from "../types/game";
+import { getSpeedFromVelocity, getVectorFromVelocity } from "./motionMath";
 
 const BORDER_COLOR_KEY_MAP: Record<string, BallColorKey> = {
   "#d23714": "red",
@@ -59,17 +60,27 @@ function getCollisionCandidates(current: Vector2, next: Vector2, bounds: ReturnT
   return candidates.filter((candidate) => candidate.time >= -COLLISION_TIME_TOLERANCE && candidate.time <= 1 + COLLISION_TIME_TOLERANCE);
 }
 
-export function resolveHeadBorderCollision(gameState: GameState, nextHeadPosition: Vector2) {
+export function resolveHeadBorderCollision(
+  gameState: GameState,
+  currentHeadPosition: Vector2,
+  nextHeadPosition: Vector2,
+  currentVelocity: Vector2,
+  bounceRestitution: number,
+) {
   const headBall = gameState.ballQueue.balls[gameState.headIndex];
-  const currentVector = gameState.motion.currentVector;
 
-  if (!headBall || !currentVector) {
+  if (!headBall) {
+    return null;
+  }
+
+  const currentVector = getVectorFromVelocity(currentVelocity);
+
+  if (!currentVector) {
     return null;
   }
 
   const bounds = getInnerBounds(gameState, headBall.radius);
-  const currentPosition = headBall.position;
-  const candidates = getCollisionCandidates(currentPosition, nextHeadPosition, bounds);
+  const candidates = getCollisionCandidates(currentHeadPosition, nextHeadPosition, bounds);
 
   if (candidates.length === 0) {
     return null;
@@ -86,19 +97,24 @@ export function resolveHeadBorderCollision(gameState: GameState, nextHeadPositio
     return null;
   }
 
-  const deltaX = nextHeadPosition.x - currentPosition.x;
-  const deltaY = nextHeadPosition.y - currentPosition.y;
+  const deltaX = nextHeadPosition.x - currentHeadPosition.x;
+  const deltaY = nextHeadPosition.y - currentHeadPosition.y;
   const resolvedPosition = {
-    x: Math.min(bounds.maxX, Math.max(bounds.minX, currentPosition.x + deltaX * earliestTime)),
-    y: Math.min(bounds.maxY, Math.max(bounds.minY, currentPosition.y + deltaY * earliestTime)),
+    x: Math.min(bounds.maxX, Math.max(bounds.minX, currentHeadPosition.x + deltaX * earliestTime)),
+    y: Math.min(bounds.maxY, Math.max(bounds.minY, currentHeadPosition.y + deltaY * earliestTime)),
   };
-  const afterVector = reflectVectorBySides(currentVector, hitSides);
+  const reflectedVelocity = reflectVectorBySides(currentVelocity, hitSides);
+  const nextVelocity = {
+    x: reflectedVelocity.x * bounceRestitution,
+    y: reflectedVelocity.y * bounceRestitution,
+  };
+  const afterVector = getVectorFromVelocity(nextVelocity) ?? currentVector;
   const borderColorKey = BORDER_COLOR_KEY_MAP[border.color.toLowerCase()] ?? null;
   const collisionType: CollisionType = borderColorKey === gameState.currentHeadColor ? "match" : "mismatch";
 
   return {
     resolvedPosition,
-    nextVector: afterVector,
+    nextVelocity,
     collision: {
       borderId: border.id,
       side: border.side,
@@ -107,6 +123,8 @@ export function resolveHeadBorderCollision(gameState: GameState, nextHeadPositio
       headColor: gameState.currentHeadColor,
       beforeVector: currentVector,
       afterVector,
+      beforeSpeed: getSpeedFromVelocity(currentVelocity),
+      afterSpeed: getSpeedFromVelocity(nextVelocity),
     },
   };
 }

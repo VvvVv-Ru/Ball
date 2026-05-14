@@ -5,6 +5,7 @@ import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion
 import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
 import { resolveLevelClear } from "../logic/levelClear";
+import { areVectorsEffectivelySame } from "../logic/motionMath";
 import { resolveOutOfBoundsFailure } from "../logic/outOfBoundsFailure";
 import {
   cancelPointerGestureState,
@@ -34,14 +35,6 @@ const IMPACT_NORMAL_BY_SIDE: Record<"top" | "right" | "bottom" | "left", Vector2
   bottom: { x: 0, y: -1 },
   left: { x: 1, y: 0 },
 };
-
-function areVectorsEffectivelySame(left: Vector2 | null, right: Vector2 | null) {
-  if (!left || !right) {
-    return false;
-  }
-
-  return Math.abs(left.x - right.x) <= 0.0001 && Math.abs(left.y - right.y) <= 0.0001;
-}
 
 function emitSoftBallLaunchTrigger(previousState: NonNullable<GameStoreState["gameState"]>, nextState: NonNullable<GameStoreState["gameState"]>, occurredAt: number) {
   const config = nextState.tuningConfig.softBall;

@@ -25,6 +25,8 @@ export function resolveOutOfBoundsFailure(gameState: GameState): GameState {
     motion: {
       ...gameState.motion,
       isLaunched: false,
+      velocity: { x: 0, y: 0 },
+      currentVector: null,
       currentSpeed: 0,
     },
   };
