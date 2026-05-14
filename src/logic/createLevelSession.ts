@@ -40,6 +40,8 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     inputConfig: {
       triggerDistance: { ...levelConfig.gameplay.input.triggerDistance },
       holdStillMaxMs: levelConfig.gameplay.input.holdStillMaxMs,
+      directionDebounceAxisDelta: levelConfig.gameplay.input.directionDebounceAxisDelta,
+      redirectCooldownMs: levelConfig.gameplay.input.redirectCooldownMs,
     },
     input: {
       lastInputDirection: null,
@@ -63,6 +65,21 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       currentDirection: null,
       currentSpeed: 0,
       lastTickAt: null,
+      lastRedirectAt: null,
+      redirectCooldownMs: levelConfig.gameplay.input.redirectCooldownMs,
+      isRedirectCooling: false,
+      lastAcceptedDirection: null,
+      headPath: balls.map((ball) => ({ ...ball.position })),
+      maxQueueStretch: 0,
+    },
+    collision: {
+      lastCollisionBorderId: null,
+      lastCollisionSide: null,
+      lastCollisionType: null,
+      lastCollisionBorderColor: null,
+      lastCollisionHeadColor: null,
+      lastReflectionBefore: null,
+      lastReflectionAfter: null,
     },
   };
 }

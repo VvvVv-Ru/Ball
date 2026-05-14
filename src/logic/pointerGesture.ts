@@ -47,6 +47,19 @@ function getDirectionFromDelta(start: Vector2, current: Vector2): InputDirection
   return deltaY >= 0 ? "down" : "up";
 }
 
+function getStableDirectionFromDelta(gameState: GameState, start: Vector2, current: Vector2): InputDirection {
+  const deltaX = current.x - start.x;
+  const deltaY = current.y - start.y;
+  const axisDelta = Math.abs(Math.abs(deltaX) - Math.abs(deltaY));
+  const fallbackDirection = gameState.motion.lastAcceptedDirection ?? gameState.motion.currentDirection ?? gameState.input.lastInputDirection;
+
+  if (axisDelta < gameState.inputConfig.directionDebounceAxisDelta && fallbackDirection) {
+    return fallbackDirection;
+  }
+
+  return getDirectionFromDelta(start, current);
+}
+
 export function startPointerGestureState(gameState: GameState, payload: PointerGesturePayload): GameState {
   const currentThreshold = getTriggerDistance(gameState, payload.pointerType);
 
@@ -80,7 +93,9 @@ export function updatePointerGestureState(
   const currentDistance = getDistance(pointer.pointerStart, payload.position);
   const hasReachedThreshold = currentDistance >= currentThreshold;
   const shouldTrigger = hasReachedThreshold && !pointer.hasTriggeredInCurrentGesture && !gameState.isInputLocked;
-  const triggeredDirection = shouldTrigger ? getDirectionFromDelta(pointer.pointerStart, payload.position) : null;
+  const triggeredDirection = shouldTrigger
+    ? getStableDirectionFromDelta(gameState, pointer.pointerStart, payload.position)
+    : null;
 
   return {
     nextState: withPointerState(

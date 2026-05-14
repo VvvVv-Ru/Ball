@@ -9,6 +9,9 @@ import {
   startPointerGestureState,
   updatePointerGestureState,
 } from "../logic/pointerGesture";
+import { UI_EVENT_NAMES } from "../types/uiContract";
+import { gameUiEventBus } from "./gameUiEventBus";
+import { selectUiStateContract } from "./uiSelectors";
 import type {
   Border,
   BorderSegment,
@@ -20,6 +23,46 @@ import type {
   PointerGesturePayload,
   Scene,
 } from "../types/game";
+
+function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: GameStoreState["gameState"]) {
+  const contractState = selectUiStateContract({
+    scene,
+    levels: [],
+    selectedLevelId: null,
+    currentLevelId: levelId as GameStoreState["currentLevelId"],
+    gameState,
+    borderEditor: { isOpen: false, selectedBorderId: null },
+    setScene: () => undefined,
+    selectLevel: () => undefined,
+    loadLevel3Config: () => undefined,
+    resetLevel3State: () => undefined,
+    applyInput: () => undefined,
+    tickMotion: () => undefined,
+    startPointerGesture: () => undefined,
+    updatePointerGesture: () => undefined,
+    endPointerGesture: () => undefined,
+    cancelPointerGesture: () => undefined,
+    setHeadIndex: () => undefined,
+    setInputLocked: () => undefined,
+    toggleBorderEditor: () => undefined,
+    selectEditorBorder: () => undefined,
+    updateEditorBorder: () => undefined,
+    setEditorBorderSegmentCount: () => undefined,
+    updateEditorBorderSegmentColor: () => undefined,
+    startSelectedLevel: () => undefined,
+    backToMenu: () => undefined,
+    backToSelect: () => undefined,
+  });
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.GAME_STATE_CHANGED, {
+    scene,
+    levelId,
+    levelState: contractState.levelState,
+    currentHeadColor: contractState.currentHeadColor,
+    remainingBalls: contractState.remainingBalls,
+    remainingTargets: contractState.remainingTargets,
+  });
+}
 
 const initialSelectedLevelId = LEVELS[0]?.id ?? null;
 const initialBorderEditorState = {
@@ -127,12 +170,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
 
+    const nextGameState = createLevel3InitialGameState(levelConfig);
+
     set({
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
-      gameState: createLevel3InitialGameState(levelConfig),
+      gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
+
+    emitGameStateChanged(get().scene, levelConfig.id, nextGameState);
   },
   resetLevel3State: () => {
     const levelConfig = getLevelConfigById("level3");
@@ -141,23 +188,37 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
 
+    const nextGameState = createLevel3InitialGameState(levelConfig);
+
     set({
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
-      gameState: createLevel3InitialGameState(levelConfig),
+      gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
+
+    emitGameStateChanged(get().scene, levelConfig.id, nextGameState);
   },
   applyInput: (direction: InputDirection) => {
-    const occurredAt = Date.now();
+    const occurredAt = performance.now();
 
     set((state) => {
       if (!state.gameState) {
         return state;
       }
 
+      const nextGameState = applyLaunchMotion(applyInputIntent(state.gameState, direction, occurredAt), direction, occurredAt);
+
+      gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
+        direction,
+        vector: nextGameState.input.lastInputVector,
+        source: "keyboard",
+        occurredAt,
+      });
+      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+
       return {
-        gameState: applyLaunchMotion(applyInputIntent(state.gameState, direction, occurredAt), direction),
+        gameState: nextGameState,
       };
     });
   },
@@ -167,11 +228,22 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
-      const nextGameState = advanceHeadMotion(state.gameState, now);
+      const { nextGameState, collision } = advanceHeadMotion(state.gameState, now);
 
       if (nextGameState === state.gameState) {
         return state;
       }
+
+      if (collision?.type === "mismatch" && collision.borderColor && collision.headColor) {
+        gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, {
+          borderId: collision.borderId,
+          expectedColor: collision.borderColor,
+          actualColor: collision.headColor,
+          headIndex: state.gameState.headIndex,
+        });
+      }
+
+      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
 
       return {
         gameState: nextGameState,
@@ -184,8 +256,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
+      const nextGameState = startPointerGestureState(state.gameState, payload);
+
       return {
-        gameState: startPointerGestureState(state.gameState, payload),
+        gameState: nextGameState,
       };
     });
   },
@@ -197,10 +271,23 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       const { nextState, triggeredDirection } = updatePointerGestureState(state.gameState, payload);
 
+      const nextGameState = triggeredDirection
+        ? applyLaunchMotion(applyInputIntent(nextState, triggeredDirection, payload.at), triggeredDirection, payload.at)
+        : nextState;
+
+      if (triggeredDirection) {
+        gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
+          direction: triggeredDirection,
+          vector: nextGameState.input.lastInputVector,
+          source: payload.pointerType,
+          occurredAt: payload.at,
+        });
+      }
+
+      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+
       return {
-        gameState: triggeredDirection
-          ? applyLaunchMotion(applyInputIntent(nextState, triggeredDirection, payload.at), triggeredDirection)
-          : nextState,
+        gameState: nextGameState,
       };
     });
   },
@@ -210,8 +297,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
+      const nextGameState = endPointerGestureState(state.gameState, payload);
+
       return {
-        gameState: endPointerGestureState(state.gameState, payload),
+        gameState: nextGameState,
       };
     });
   },
@@ -221,8 +310,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
+      const nextGameState = cancelPointerGestureState(state.gameState);
+
       return {
-        gameState: cancelPointerGestureState(state.gameState),
+        gameState: nextGameState,
       };
     });
   },
@@ -234,15 +325,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       const nextHeadBall = state.gameState.ballQueue.balls[headIndex] ?? null;
 
+      const nextGameState = {
+        ...state.gameState,
+        headIndex,
+        currentHeadColor: nextHeadBall?.colorKey ?? null,
+        ballQueue: {
+          ...state.gameState.ballQueue,
+          headIndex,
+        },
+      };
+
+      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+
       return {
         gameState: {
-          ...state.gameState,
-          headIndex,
-          currentHeadColor: nextHeadBall?.colorKey ?? null,
-          ballQueue: {
-            ...state.gameState.ballQueue,
-            headIndex,
-          },
+          ...nextGameState,
         },
       };
     });
@@ -253,10 +350,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
+      const nextGameState = {
+        ...state.gameState,
+        isInputLocked: isLocked,
+      };
+
+      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+
       return {
         gameState: {
-          ...state.gameState,
-          isInputLocked: isLocked,
+          ...nextGameState,
         },
       };
     });
@@ -423,12 +526,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
 
+    const nextGameState = createLevel3InitialGameState(levelConfig);
+
     set({
       scene: "playing",
       currentLevelId: levelConfig.id,
-      gameState: createLevel3InitialGameState(levelConfig),
+      gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
+
+    emitGameStateChanged("playing", levelConfig.id, nextGameState);
   },
   backToMenu: () => {
     set({
@@ -437,6 +544,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       gameState: null,
       borderEditor: initialBorderEditorState,
     });
+
+    emitGameStateChanged("menu", null, null);
   },
   backToSelect: () => {
     set({
@@ -445,6 +554,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       gameState: null,
       borderEditor: initialBorderEditorState,
     });
+
+    emitGameStateChanged("select", null, null);
   },
 }));
 

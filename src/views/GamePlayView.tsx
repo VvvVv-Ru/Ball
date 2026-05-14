@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { Board } from "../engine/Board";
+import { gameUiEventBus } from "../store/gameUiEventBus";
 import { gameStoreSelectors, useGameStore } from "../store/useGameStore";
+import { uiStateSelectors } from "../store/uiSelectors";
 import type { InputDirection, PointerGesturePayload, PointerInputSource } from "../types/game";
+import { UI_EVENT_NAMES } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
 
 const KEY_DIRECTION_MAP: Record<string, InputDirection> = {
@@ -48,6 +51,14 @@ function isBlockedPointerTarget(target: EventTarget | null) {
 export function GamePlayView() {
   const currentLevelId = useGameStore(gameStoreSelectors.selectCurrentLevelId);
   const gameState = useGameStore(gameStoreSelectors.selectGameState);
+  const score = useGameStore(uiStateSelectors.score);
+  const hp = useGameStore(uiStateSelectors.hp);
+  const combo = useGameStore(uiStateSelectors.combo);
+  const levelState = useGameStore(uiStateSelectors.levelState);
+  const isInputLocked = useGameStore(uiStateSelectors.isInputLocked);
+  const currentHeadColor = useGameStore(uiStateSelectors.currentHeadColor);
+  const remainingBalls = useGameStore(uiStateSelectors.remainingBalls);
+  const remainingTargets = useGameStore(uiStateSelectors.remainingTargets);
   const inputState = useGameStore(gameStoreSelectors.selectInputState);
   const motionState = useGameStore(gameStoreSelectors.selectMotionState);
   const pointerGesture = useGameStore(gameStoreSelectors.selectPointerGesture);
@@ -59,6 +70,25 @@ export function GamePlayView() {
   const cancelPointerGesture = useGameStore((state) => state.cancelPointerGesture);
   const backToSelect = useGameStore((state) => state.backToSelect);
   const backToMenu = useGameStore((state) => state.backToMenu);
+  const [latestUiEvent, setLatestUiEvent] = useState<string>("-");
+
+  useEffect(() => {
+    const unsubscribeStateChanged = gameUiEventBus.subscribe(UI_EVENT_NAMES.GAME_STATE_CHANGED, (payload) => {
+      setLatestUiEvent(`GAME_STATE_CHANGED:${payload.levelState}`);
+    });
+    const unsubscribeAimUpdate = gameUiEventBus.subscribe(UI_EVENT_NAMES.INPUT_AIM_UPDATE, (payload) => {
+      setLatestUiEvent(`INPUT_AIM_UPDATE:${payload.direction}/${payload.source}`);
+    });
+    const unsubscribeMismatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, (payload) => {
+      setLatestUiEvent(`ON_COLLISION_MISMATCH:${payload.borderId}/${payload.expectedColor}`);
+    });
+
+    return () => {
+      unsubscribeStateChanged();
+      unsubscribeAimUpdate();
+      unsubscribeMismatch();
+    };
+  }, []);
 
   useEffect(() => {
     if (!currentLevelId) {
@@ -174,17 +204,45 @@ export function GamePlayView() {
     >
       <Board gameState={gameState} />
 
-      <section className="ui-shell ui-shell--left" aria-label="HUD placeholder">
+      <section
+        className="ui-shell ui-shell--left"
+        aria-label="HUD placeholder"
+        data-ui-mount="hud"
+        data-ui-consumer="selectors-events"
+      >
         <span className="eyebrow">UI Placeholder</span>
         <h2>第 3 关 HUD 占位</h2>
         <ul>
-          <li>hp: {gameState.hp}</li>
+          <li>score: {score}</li>
+          <li>hp: {hp}</li>
+          <li>combo: {combo}</li>
+          <li>levelState: {levelState}</li>
+          <li>isInputLocked: {String(isInputLocked)}</li>
+          <li>currentHeadColor: {currentHeadColor ?? "-"}</li>
+          <li>remainingBalls: {remainingBalls}</li>
+          <li>remainingTargets: {remainingTargets}</li>
+          <li>latestUiEvent: {latestUiEvent}</li>
+          <li>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</li>
+          <li>lastCollisionType: {gameState.collision.lastCollisionType ?? "-"}</li>
+          <li>lastCollisionBorderId: {gameState.collision.lastCollisionBorderId ?? "-"}</li>
+          <li>collisionBorderColor: {gameState.collision.lastCollisionBorderColor ?? "-"}</li>
+          <li>collisionHeadColor: {gameState.collision.lastCollisionHeadColor ?? "-"}</li>
+          <li>
+            reflection: {gameState.collision.lastReflectionBefore?.x ?? "-"},{gameState.collision.lastReflectionBefore?.y ?? "-"}
+            {" -> "}
+            {gameState.collision.lastReflectionAfter?.x ?? "-"},{gameState.collision.lastReflectionAfter?.y ?? "-"}
+          </li>
           <li>initialSpeed: {gameState.initialSpeed}</li>
-          <li>isInputLocked: {String(gameState.isInputLocked)}</li>
-          <li>status: {gameState.status}</li>
           <li>isLaunched: {String(motionState?.isLaunched ?? false)}</li>
           <li>currentDirection: {motionState?.currentDirection ?? "-"}</li>
           <li>currentSpeed: {motionState?.currentSpeed ?? 0}</li>
+          <li>queueLength: {gameState.ballQueue.balls.length}</li>
+          <li>queueGap: {gameState.ballQueue.surfaceGap}</li>
+          <li>maxQueueStretch: {motionState?.maxQueueStretch.toFixed(2) ?? "0.00"}</li>
+          <li>lastRedirectAt: {motionState?.lastRedirectAt ?? "-"}</li>
+          <li>redirectCooldownMs: {motionState?.redirectCooldownMs ?? 0}</li>
+          <li>isRedirectCooling: {String(motionState?.isRedirectCooling ?? false)}</li>
+          <li>lastAcceptedDirection: {motionState?.lastAcceptedDirection ?? "-"}</li>
           <li>
             headPosition: {gameState.ballQueue.balls[gameState.headIndex]?.position.x.toFixed(1) ?? "-"},
             {gameState.ballQueue.balls[gameState.headIndex]?.position.y.toFixed(1) ?? "-"}
@@ -201,7 +259,12 @@ export function GamePlayView() {
 
       <BorderEditorPanel />
 
-      <div className="floating-actions" aria-label="Overlay controls">
+      <div
+        className="floating-actions"
+        aria-label="Overlay controls"
+        data-ui-mount="overlay"
+        data-ui-consumer="selectors-events"
+      >
         <button type="button" className="ghost-button" onClick={backToSelect}>
           返回选关
         </button>

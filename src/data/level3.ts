@@ -17,6 +17,8 @@ const LEVEL3_POINTER_TRIGGER_DISTANCE = {
   unknown: 10,
 } as const;
 const LEVEL3_POINTER_HOLD_STILL_MAX_MS = 300;
+const LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA = 6;
+const LEVEL3_REDIRECT_COOLDOWN_MS = 80;
 const LEVEL3_PLAYFIELD_CENTER: Vector2 = {
   x: LEVEL3_VIEWPORT.width / 2,
   y: LEVEL3_VIEWPORT.height / 2 + 120,
@@ -157,6 +159,8 @@ export const level3Config: LevelConfig = {
     input: {
       triggerDistance: { ...LEVEL3_POINTER_TRIGGER_DISTANCE },
       holdStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
+      directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
+      redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
     },
   },
   notes: {
@@ -173,5 +177,7 @@ export const LEVEL3_CONSTANTS = {
   initialHp: LEVEL3_INITIAL_HP,
   pointerTriggerDistance: LEVEL3_POINTER_TRIGGER_DISTANCE,
   pointerHoldStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
+  directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
+  redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
   colorPool: LEVEL3_COLOR_POOL,
 } as const;

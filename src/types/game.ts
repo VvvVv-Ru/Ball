@@ -12,6 +12,8 @@ export type PointerInputSource = "mouse" | "touch" | "pen" | "unknown";
 
 export type HeadBallIndex = number;
 
+export type CollisionType = "match" | "mismatch";
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -78,6 +80,8 @@ export interface LevelGameplayConfig {
 export interface LevelInputConfig {
   triggerDistance: Record<PointerInputSource, number>;
   holdStillMaxMs: number;
+  directionDebounceAxisDelta: number;
+  redirectCooldownMs: number;
 }
 
 export interface LevelNotes {
@@ -130,6 +134,22 @@ export interface MotionState {
   currentDirection: InputDirection | null;
   currentSpeed: number;
   lastTickAt: number | null;
+  lastRedirectAt: number | null;
+  redirectCooldownMs: number;
+  isRedirectCooling: boolean;
+  lastAcceptedDirection: InputDirection | null;
+  headPath: Vector2[];
+  maxQueueStretch: number;
+}
+
+export interface CollisionState {
+  lastCollisionBorderId: string | null;
+  lastCollisionSide: BorderSide | null;
+  lastCollisionType: CollisionType | null;
+  lastCollisionBorderColor: BallColorKey | null;
+  lastCollisionHeadColor: BallColorKey | null;
+  lastReflectionBefore: Vector2 | null;
+  lastReflectionAfter: Vector2 | null;
 }
 
 export interface GameState {
@@ -146,6 +166,7 @@ export interface GameState {
   inputConfig: LevelInputConfig;
   input: InputState;
   motion: MotionState;
+  collision: CollisionState;
 }
 
 export interface BorderEditorState {

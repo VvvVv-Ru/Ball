@@ -106,12 +106,29 @@ export function Board({ gameState }: { gameState: GameState }) {
             <span>isLaunched: {String(gameState.motion.isLaunched)}</span>
             <span>currentDirection: {gameState.motion.currentDirection ?? "-"}</span>
             <span>currentSpeed: {gameState.motion.currentSpeed}</span>
+            <span>queueLength: {gameState.ballQueue.balls.length}</span>
+            <span>queueGap: {gameState.ballQueue.surfaceGap}</span>
+            <span>maxQueueStretch: {gameState.motion.maxQueueStretch.toFixed(2)}</span>
+            <span>lastRedirectAt: {gameState.motion.lastRedirectAt ?? "-"}</span>
+            <span>redirectCooldownMs: {gameState.motion.redirectCooldownMs}</span>
+            <span>isRedirectCooling: {String(gameState.motion.isRedirectCooling)}</span>
+            <span>lastAcceptedDirection: {gameState.motion.lastAcceptedDirection ?? "-"}</span>
             <span>
               headPosition: {gameState.ballQueue.balls[gameState.headIndex]?.position.x.toFixed(1) ?? "-"},
               {gameState.ballQueue.balls[gameState.headIndex]?.position.y.toFixed(1) ?? "-"}
             </span>
             <span>headIndex: {gameState.headIndex}</span>
             <span>headColor: {gameState.currentHeadColor ?? "-"}</span>
+            <span>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</span>
+            <span>lastCollisionType: {gameState.collision.lastCollisionType ?? "-"}</span>
+            <span>lastCollisionBorderId: {gameState.collision.lastCollisionBorderId ?? "-"}</span>
+            <span>collisionBorderColor: {gameState.collision.lastCollisionBorderColor ?? "-"}</span>
+            <span>collisionHeadColor: {gameState.collision.lastCollisionHeadColor ?? "-"}</span>
+            <span>
+              reflection: {gameState.collision.lastReflectionBefore?.x ?? "-"},{gameState.collision.lastReflectionBefore?.y ?? "-"}
+              {" -> "}
+              {gameState.collision.lastReflectionAfter?.x ?? "-"},{gameState.collision.lastReflectionAfter?.y ?? "-"}
+            </span>
             <span>lastInputDirection: {gameState.input.lastInputDirection ?? "-"}</span>
             <span>lastInputAt: {gameState.input.lastInputAt ?? "-"}</span>
             <span>inputCount: {gameState.input.inputCount}</span>
