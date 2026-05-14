@@ -6,12 +6,22 @@ function getTailBufferDistance(speed: number) {
   return Math.max(speed, 1);
 }
 
+function rebuildRemainingBallsWithInheritedFrontSizes(gameState: GameState) {
+  return gameState.ballQueue.balls.slice(gameState.headIndex + 1).map((ball, index) => {
+    const inheritedSizeSource = gameState.ballQueue.balls[gameState.headIndex + index] ?? ball;
+
+    return {
+      ...ball,
+      order: index,
+      radius: inheritedSizeSource.radius,
+      diameter: inheritedSizeSource.diameter,
+    };
+  });
+}
+
 export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vector2, borderId: string): GameState {
   const removedBall = gameState.ballQueue.balls[gameState.headIndex] ?? null;
-  const remainingBalls = gameState.ballQueue.balls.slice(gameState.headIndex + 1).map((ball, index) => ({
-    ...ball,
-    order: index,
-  }));
+  const remainingBalls = rebuildRemainingBallsWithInheritedFrontSizes(gameState);
   const queueOffsets = getQueueOffsets(
     {
       ...gameState,
