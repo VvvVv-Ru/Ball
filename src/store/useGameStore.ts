@@ -389,6 +389,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           combo: progressedState.progress.combo,
           previousCombo: state.gameState.progress.combo,
           reason: "mismatch",
+          headPosition: state.gameState.ballQueue.balls[state.gameState.headIndex]?.position ?? null,
         });
         emitTimerEvents(state.gameState, progressedState);
         emitLevelFailIfNeeded(state.currentLevelId, progressedState);
@@ -448,6 +449,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           combo: progressedState.progress.combo,
           previousCombo: state.gameState.progress.combo,
           reason: "match",
+          headPosition: state.gameState.ballQueue.balls[state.gameState.headIndex]?.position ?? null,
         });
         emitTimerEvents(state.gameState, progressedState);
         emitLevelFailIfNeeded(state.currentLevelId, progressedState);

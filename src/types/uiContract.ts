@@ -67,6 +67,7 @@ export interface ComboChangedPayload {
   combo: number;
   previousCombo: number;
   reason: "match" | "mismatch" | "placeholder";
+  headPosition: Vector2 | null;
 }
 
 export interface InputLockChangedPayload {

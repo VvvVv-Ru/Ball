@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { Board } from "../engine/Board";
 import { gameUiEventBus } from "../store/gameUiEventBus";
 import { gameStoreSelectors, useGameStore } from "../store/useGameStore";
@@ -8,12 +8,17 @@ import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeC
 import { UI_EVENT_NAMES } from "../types/uiContract";
 import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
+import { useComboPopups } from "./useComboPopups";
 import { useCameraFollow } from "./useCameraFollow";
 import { useMatchImpactParticles } from "./useMatchImpactParticles";
 import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
 const MAX_ACTIVE_BORDER_RINGS = 6;
 const HUD_HEART_COUNT = 3;
+const HUD_HEART_ASSETS = {
+  filled: "/hud/heart-filled.png",
+  empty: "/hud/heart-empty.png",
+} as const;
 
 const KEY_DIRECTION_MAP: Record<string, InputDirection> = {
   ArrowUp: "up",
@@ -83,6 +88,14 @@ function formatHudSeconds(seconds: number | null) {
   return `${seconds.toFixed(1)}s`;
 }
 
+function createComboPopupStyle(position: { x: number; y: number }, viewport: { width: number; height: number }, durationMs: number): CSSProperties {
+  return {
+    left: `${(position.x / viewport.width) * 100}%`,
+    top: `${(position.y / viewport.height) * 100}%`,
+    "--combo-feedback-duration": `${durationMs}ms`,
+  } as CSSProperties;
+}
+
 export function GamePlayView() {
   const isHudPlaceholderVisible = false;
   const isBorderEditorVisible = false;
@@ -121,6 +134,7 @@ export function GamePlayView() {
   const lastShakeStartedAtRef = useRef<number>(-Infinity);
   const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
   const cameraFollow = useCameraFollow(gameState);
+  const comboPopups = useComboPopups(gameState, cameraFollow);
   const matchImpactParticles = useMatchImpactParticles(gameState);
   const softBallVisuals = useSoftBallVisuals(gameState);
 
@@ -458,30 +472,44 @@ export function GamePlayView() {
         matchImpactParticles={matchImpactParticles}
         softBallVisuals={softBallVisuals}
         overlay={(
-          <section
-            className="gameplay-hud"
-            aria-label="Level HUD"
-            data-ui-mount="hud-primary"
-            data-ui-consumer="selectors-events"
-          >
-            <div className="gameplay-hud__timer-display">
-              <strong className="gameplay-hud__timer-value">{formatHudSeconds(displayedElapsedTimeSeconds)}</strong>
-            </div>
-
-            <div className="gameplay-hud__hearts-display" aria-label={`体力 ${hp}/${HUD_HEART_COUNT}`}>
-              <div className="gameplay-hud__hearts-row">
-                {heartSlots.map((heart) => (
-                  <span
-                    key={heart.id}
-                    className={`gameplay-hud__heart${heart.isFilled ? " is-filled" : " is-empty"}`}
-                    aria-hidden="true"
-                  >
-                    ♥
-                  </span>
-                ))}
+          <Fragment>
+            <section
+              className="gameplay-hud"
+              aria-label="Level HUD"
+              data-ui-mount="hud-primary"
+              data-ui-consumer="selectors-events"
+            >
+              <div className="gameplay-hud__timer-display">
+                <strong className="gameplay-hud__timer-value">{formatHudSeconds(displayedElapsedTimeSeconds)}</strong>
               </div>
+
+              <div className="gameplay-hud__hearts-display" aria-label={`体力 ${hp}/${HUD_HEART_COUNT}`}>
+                <div className="gameplay-hud__hearts-row">
+                  {heartSlots.map((heart) => (
+                    <img
+                      key={heart.id}
+                      className={`gameplay-hud__heart${heart.isFilled ? " is-filled" : " is-empty"}`}
+                      src={heart.isFilled ? HUD_HEART_ASSETS.filled : HUD_HEART_ASSETS.empty}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <div className="combo-feedback-layer" aria-hidden="true">
+              {comboPopups.map((popup) => (
+                <div
+                  key={popup.id}
+                  className={`combo-feedback-popup is-lane-${popup.lane}`}
+                  style={createComboPopupStyle(popup.position, gameState.viewport, popup.durationMs)}
+                >
+                  <span className="combo-feedback-popup__label">{popup.label}</span>
+                </div>
+              ))}
             </div>
-          </section>
+          </Fragment>
         )}
       />
 
