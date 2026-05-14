@@ -116,11 +116,23 @@ button {
 }
 
 .stage-shell {
+  position: relative;
   width: 100%;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 16px;
+}
+
+.stage-overlay-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(calc(100vh * 1080 / 1920), 100vw - 32px);
+  aspect-ratio: 1080 / 1920;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
 }
 
 .stage-frame {
@@ -268,6 +280,56 @@ button {
   z-index: 3;
   width: min(360px, calc(100vw - 32px));
   padding: 16px;
+}
+
+.gameplay-hud {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: min(440px, calc(100vw - 48px));
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.gameplay-hud__timer-display,
+.gameplay-hud__hearts-display {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
+.gameplay-hud__timer-value {
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1;
+  color: #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+.gameplay-hud__hearts-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.gameplay-hud__heart {
+  font-size: clamp(24px, 4vw, 32px);
+  line-height: 1;
+  transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease;
+}
+
+.gameplay-hud__heart.is-filled {
+  color: #ff4b68;
+  filter: drop-shadow(0 6px 12px rgba(255, 75, 104, 0.28));
+}
+
+.gameplay-hud__heart.is-empty {
+  color: rgba(255, 255, 255, 0.22);
+  transform: scale(0.96);
 }
 
 .ui-shell--left {
@@ -433,6 +495,10 @@ button {
 }
 
 @media (max-width: 900px) {
+  .gameplay-hud {
+    width: min(400px, calc(100vw - 24px));
+  }
+
   .ui-shell {
     width: min(320px, calc(100vw - 24px));
   }
@@ -458,11 +524,21 @@ button {
     border-radius: 20px;
   }
 
+  .stage-overlay-layer {
+    width: min(calc(100vh * 1080 / 1920), 100vw - 24px);
+  }
+
   .ui-shell--left,
   .ui-shell--right {
     left: 12px;
     right: 12px;
     width: auto;
+  }
+
+  .gameplay-hud {
+    top: 12px;
+    width: calc(100vw - 24px);
+    gap: 8px;
   }
 
   .ui-shell--left {

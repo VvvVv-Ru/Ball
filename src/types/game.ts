@@ -310,9 +310,7 @@ export interface CollisionState {
 }
 
 export interface ProgressState {
-  score: number;
   combo: number;
-  lastScoreDelta: number;
 }
 
 export interface RuleState {
@@ -335,6 +333,12 @@ export interface GameState {
   headIndex: HeadBallIndex;
   currentHeadColor: BallColorKey | null;
   isInputLocked: boolean;
+  elapsedTimeMs: number;
+  elapsedTimeSeconds: number;
+  timerStartedAt: number | null;
+  isTimerRunning: boolean;
+  finalElapsedTimeMs: number | null;
+  finalElapsedTimeSeconds: number | null;
   hp: number;
   inputConfig: LevelInputConfig;
   tuningConfig: LevelTuningConfig;
@@ -344,7 +348,7 @@ export interface GameState {
   progress: ProgressState;
   rule: RuleState;
   failReason: "out_of_bounds" | null;
-  clearReason: "all_targets_cleared_and_no_balls" | null;
+  clearReason: "all_targets_cleared" | null;
 }
 
 export interface BorderEditorState {

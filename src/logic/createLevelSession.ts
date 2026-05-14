@@ -35,6 +35,12 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     headIndex,
     currentHeadColor,
     isInputLocked: false,
+    elapsedTimeMs: 0,
+    elapsedTimeSeconds: 0,
+    timerStartedAt: null,
+    isTimerRunning: false,
+    finalElapsedTimeMs: null,
+    finalElapsedTimeSeconds: null,
     hp: levelConfig.gameplay.initialHp,
     inputConfig: {
       holdStillMaxMs: levelConfig.gameplay.input.holdStillMaxMs,
@@ -156,9 +162,7 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       lastReflectionAfter: null,
     },
     progress: {
-      score: 0,
       combo: 0,
-      lastScoreDelta: 0,
     },
     rule: {
       delayedBorderState: "idle",

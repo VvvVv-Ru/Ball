@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type {
   BallDefinition,
   BallSoftBallVisualMap,
@@ -148,6 +148,7 @@ export function Board(
     borderImpactRings = [],
     matchImpactParticles = [],
     softBallVisuals = {},
+    overlay = null,
   }: {
     gameState: GameState;
     stageShake?: StageShakeState | null;
@@ -155,6 +156,7 @@ export function Board(
     borderImpactRings?: BorderImpactRingEffect[];
     matchImpactParticles?: MatchImpactParticleVisual[];
     softBallVisuals?: BallSoftBallVisualMap;
+    overlay?: ReactNode;
   },
 ) {
   return (
@@ -227,10 +229,12 @@ export function Board(
           </div>
 
           <div className="board-debug-panel" aria-label="Board debug info">
-            <span>score: {gameState.progress.score}</span>
+            <span>elapsedTimeSeconds: {gameState.elapsedTimeSeconds}</span>
+            <span>timerStartedAt: {gameState.timerStartedAt ?? "-"}</span>
+            <span>isTimerRunning: {String(gameState.isTimerRunning)}</span>
+            <span>finalElapsedTimeSeconds: {gameState.finalElapsedTimeSeconds ?? "-"}</span>
             <span>combo: {gameState.progress.combo}</span>
             <span>hp: {gameState.hp}</span>
-            <span>lastScoreDelta: {gameState.progress.lastScoreDelta}</span>
             <span>levelState: {gameState.status === "ready" ? "playing" : gameState.status}</span>
             <span>clearReason: {gameState.clearReason ?? "-"}</span>
             <span>failReason: {gameState.failReason ?? "-"}</span>
@@ -286,6 +290,12 @@ export function Board(
 
         </div>
       </section>
+
+      {overlay ? (
+        <div className="stage-overlay-layer" aria-hidden="true">
+          {overlay}
+        </div>
+      ) : null}
     </div>
   );
 }

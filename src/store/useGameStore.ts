@@ -4,6 +4,7 @@ import { applyInputIntent, getInputVectorFromDirection } from "../logic/applyInp
 import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
 import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
+import { syncLevelTimer } from "../logic/levelTimer";
 import { resolveLevelClear } from "../logic/levelClear";
 import { areVectorsEffectivelySame } from "../logic/motionMath";
 import { resolveOutOfBoundsFailure } from "../logic/outOfBoundsFailure";
@@ -140,14 +141,50 @@ function emitLevelFailIfNeeded(levelId: string | null, gameState: GameStoreState
 }
 
 function emitLevelClearIfNeeded(levelId: string | null, gameState: GameStoreState["gameState"]) {
-  if (!gameState || gameState.status !== "clear" || !gameState.clearReason || !levelId) {
+  if (!gameState || gameState.status !== "clear" || !gameState.clearReason || !levelId || gameState.finalElapsedTimeSeconds === null || gameState.finalElapsedTimeMs === null) {
     return;
   }
 
   gameUiEventBus.emit(UI_EVENT_NAMES.LEVEL_CLEAR, {
     levelId,
     reason: gameState.clearReason,
+    finalElapsedTimeMs: gameState.finalElapsedTimeMs,
+    finalElapsedTimeSeconds: gameState.finalElapsedTimeSeconds,
   });
+}
+
+function emitTimerEvents(previousState: NonNullable<GameStoreState["gameState"]>, nextState: NonNullable<GameStoreState["gameState"]>) {
+  if (previousState.timerStartedAt === null && nextState.timerStartedAt !== null) {
+    gameUiEventBus.emit(UI_EVENT_NAMES.TIMER_STARTED, {
+      elapsedTimeMs: nextState.elapsedTimeMs,
+      elapsedTimeSeconds: nextState.elapsedTimeSeconds,
+      timerStartedAt: nextState.timerStartedAt,
+    });
+  }
+
+  if (
+    previousState.elapsedTimeMs === nextState.elapsedTimeMs
+    && previousState.elapsedTimeSeconds === nextState.elapsedTimeSeconds
+    && previousState.timerStartedAt === nextState.timerStartedAt
+    && previousState.isTimerRunning === nextState.isTimerRunning
+    && previousState.finalElapsedTimeMs === nextState.finalElapsedTimeMs
+    && previousState.finalElapsedTimeSeconds === nextState.finalElapsedTimeSeconds
+  ) {
+    return;
+  }
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.TIMER_UPDATED, {
+    elapsedTimeMs: nextState.elapsedTimeMs,
+    elapsedTimeSeconds: nextState.elapsedTimeSeconds,
+    timerStartedAt: nextState.timerStartedAt,
+    isTimerRunning: nextState.isTimerRunning,
+    finalElapsedTimeMs: nextState.finalElapsedTimeMs,
+    finalElapsedTimeSeconds: nextState.finalElapsedTimeSeconds,
+  });
+}
+
+function finalizeGameplayState(gameState: NonNullable<GameStoreState["gameState"]>, now: number) {
+  return syncLevelTimer(resolveLevelClear(resolveOutOfBoundsFailure(gameState, now), now), now);
 }
 
 const initialSelectedLevelId = LEVELS[0]?.id ?? null;
@@ -309,6 +346,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         occurredAt,
       });
       emitSoftBallLaunchTrigger(state.gameState, nextGameState, occurredAt);
+      emitTimerEvents(state.gameState, nextGameState);
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
 
       return {
@@ -334,7 +372,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       if (collision?.type === "mismatch" && collision.borderColor && collision.headColor) {
-        const progressedState = resolveLevelClear(resolveOutOfBoundsFailure(applyMismatchProgress(nextGameState)));
+        const progressedState = finalizeGameplayState(applyMismatchProgress(nextGameState), now);
 
         gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, {
           borderId: collision.borderId,
@@ -352,6 +390,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           previousCombo: state.gameState.progress.combo,
           reason: "mismatch",
         });
+        emitTimerEvents(state.gameState, progressedState);
         emitLevelFailIfNeeded(state.currentLevelId, progressedState);
         emitLevelClearIfNeeded(state.currentLevelId, progressedState);
         emitGameStateChanged(state.scene, state.currentLevelId, progressedState);
@@ -362,7 +401,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       if (specialBounce) {
-        const specialBounceState = resolveLevelClear(resolveOutOfBoundsFailure(nextGameState));
+        const specialBounceState = finalizeGameplayState(nextGameState, now);
         gameUiEventBus.emit(UI_EVENT_NAMES.DELAYED_BORDER_TRIGGERED, {
           borderId: specialBounce.borderId,
           side: state.gameState.rule.pendingBorderSide ?? "top",
@@ -376,6 +415,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isInputLocked: specialBounceState.isInputLocked,
           reason: "special-bounce",
         });
+        emitTimerEvents(state.gameState, specialBounceState);
         emitLevelFailIfNeeded(state.currentLevelId, specialBounceState);
         emitLevelClearIfNeeded(state.currentLevelId, specialBounceState);
         emitGameStateChanged(state.scene, state.currentLevelId, specialBounceState);
@@ -386,7 +426,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       if (collision?.type === "match" && collision.borderColor) {
-        const progressedState = resolveLevelClear(resolveOutOfBoundsFailure(applyMatchProgress(nextGameState)));
+        const progressedState = finalizeGameplayState(applyMatchProgress(nextGameState), now);
 
         gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MATCH, {
           borderId: collision.borderId,
@@ -404,16 +444,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isInputLocked: progressedState.isInputLocked,
           reason: "delayed-border",
         });
-        gameUiEventBus.emit(UI_EVENT_NAMES.UI_UPDATE_SCORE, {
-          score: progressedState.progress.score,
-          combo: progressedState.progress.combo,
-          reason: "rule-update",
-        });
         gameUiEventBus.emit(UI_EVENT_NAMES.COMBO_CHANGED, {
           combo: progressedState.progress.combo,
           previousCombo: state.gameState.progress.combo,
           reason: "match",
         });
+        emitTimerEvents(state.gameState, progressedState);
         emitLevelFailIfNeeded(state.currentLevelId, progressedState);
         emitLevelClearIfNeeded(state.currentLevelId, progressedState);
         emitGameStateChanged(state.scene, state.currentLevelId, progressedState);
@@ -423,8 +459,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         };
       }
 
-      const resolvedGameState = resolveLevelClear(resolveOutOfBoundsFailure(nextGameState));
+      const resolvedGameState = finalizeGameplayState(nextGameState, now);
 
+      emitTimerEvents(state.gameState, resolvedGameState);
       emitLevelFailIfNeeded(state.currentLevelId, resolvedGameState);
       emitLevelClearIfNeeded(state.currentLevelId, resolvedGameState);
       emitGameStateChanged(state.scene, state.currentLevelId, resolvedGameState);
@@ -474,6 +511,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         emitSoftBallLaunchTrigger(state.gameState, nextGameState, payload.at);
       }
 
+      emitTimerEvents(state.gameState, nextGameState);
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
 
       return {

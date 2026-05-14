@@ -2,6 +2,7 @@ import type { BorderImpactKind, BorderSide, GameState, ShakeIntensity, Vector2 }
 import { resolveDelayedBorderTrigger } from "./delayedBorderResolution";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
 import { resolveHeadMatch } from "./headMatchResolution";
+import { startLevelTimer } from "./levelTimer";
 import {
   addVectors,
   areVectorsEffectivelySame,
@@ -159,7 +160,7 @@ export function applyLaunchMotion(
     y: normalizedVector.y * resolvedSpeed,
   };
 
-  return {
+  const nextGameState = {
     ...gameState,
     motion: {
       ...gameState.motion,
@@ -173,6 +174,8 @@ export function applyLaunchMotion(
       lastAcceptedVector: normalizedVector,
     },
   };
+
+  return isAlreadyLaunched ? nextGameState : startLevelTimer(nextGameState, occurredAt);
 }
 
 export function advanceHeadMotion(

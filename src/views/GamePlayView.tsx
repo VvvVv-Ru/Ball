@@ -13,6 +13,7 @@ import { useMatchImpactParticles } from "./useMatchImpactParticles";
 import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
 const MAX_ACTIVE_BORDER_RINGS = 6;
+const HUD_HEART_COUNT = 3;
 
 const KEY_DIRECTION_MAP: Record<string, InputDirection> = {
   ArrowUp: "up",
@@ -74,12 +75,25 @@ function formatVector(vector: { x: number; y: number } | null | undefined) {
   return `${vector.x.toFixed(2)}, ${vector.y.toFixed(2)}`;
 }
 
+function formatHudSeconds(seconds: number | null) {
+  if (seconds === null) {
+    return "0.0s";
+  }
+
+  return `${seconds.toFixed(1)}s`;
+}
+
 export function GamePlayView() {
   const isHudPlaceholderVisible = false;
   const isBorderEditorVisible = false;
   const currentLevelId = useGameStore(gameStoreSelectors.selectCurrentLevelId);
   const gameState = useGameStore(gameStoreSelectors.selectGameState);
-  const score = useGameStore(uiStateSelectors.score);
+  const elapsedTimeMs = useGameStore(uiStateSelectors.elapsedTimeMs);
+  const elapsedTimeSeconds = useGameStore(uiStateSelectors.elapsedTimeSeconds);
+  const timerStartedAt = useGameStore(uiStateSelectors.timerStartedAt);
+  const isTimerRunning = useGameStore(uiStateSelectors.isTimerRunning);
+  const finalElapsedTimeMs = useGameStore(uiStateSelectors.finalElapsedTimeMs);
+  const finalElapsedTimeSeconds = useGameStore(uiStateSelectors.finalElapsedTimeSeconds);
   const hp = useGameStore(uiStateSelectors.hp);
   const combo = useGameStore(uiStateSelectors.combo);
   const levelState = useGameStore(uiStateSelectors.levelState);
@@ -268,8 +282,11 @@ export function GamePlayView() {
     const unsubscribeInputLock = gameUiEventBus.subscribe(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, (payload) => {
       setLatestUiEvent(`INPUT_LOCK_CHANGED:${String(payload.isInputLocked)}`);
     });
-    const unsubscribeScore = gameUiEventBus.subscribe(UI_EVENT_NAMES.UI_UPDATE_SCORE, (payload) => {
-      setLatestUiEvent(`UI_UPDATE_SCORE:+${payload.score}/${payload.combo}`);
+    const unsubscribeTimerStarted = gameUiEventBus.subscribe(UI_EVENT_NAMES.TIMER_STARTED, (payload) => {
+      setLatestUiEvent(`TIMER_STARTED:${payload.elapsedTimeSeconds}`);
+    });
+    const unsubscribeTimerUpdated = gameUiEventBus.subscribe(UI_EVENT_NAMES.TIMER_UPDATED, (payload) => {
+      setLatestUiEvent(`TIMER_UPDATED:${payload.elapsedTimeSeconds}/${String(payload.isTimerRunning)}`);
     });
     const unsubscribeCombo = gameUiEventBus.subscribe(UI_EVENT_NAMES.COMBO_CHANGED, (payload) => {
       setLatestUiEvent(`COMBO_CHANGED:${payload.previousCombo}->${payload.combo}`);
@@ -295,7 +312,8 @@ export function GamePlayView() {
       unsubscribeBorderImpact();
       unsubscribeSoftBall();
       unsubscribeInputLock();
-      unsubscribeScore();
+      unsubscribeTimerStarted();
+      unsubscribeTimerUpdated();
       unsubscribeCombo();
       unsubscribeHp();
       unsubscribeLevelClear();
@@ -412,6 +430,11 @@ export function GamePlayView() {
   }
 
   const headBall = gameState.ballQueue.balls[gameState.headIndex] ?? null;
+  const displayedElapsedTimeSeconds = (finalElapsedTimeMs ?? elapsedTimeMs) / 1000;
+  const heartSlots = Array.from({ length: HUD_HEART_COUNT }, (_, index) => ({
+    id: `hud-heart-${index}`,
+    isFilled: index < hp,
+  }));
   const isHeadOutOfBounds = headBall
     ? headBall.position.x - headBall.radius < 0 ||
       headBall.position.x + headBall.radius > gameState.viewport.width ||
@@ -434,6 +457,32 @@ export function GamePlayView() {
         borderImpactRings={borderImpactRings}
         matchImpactParticles={matchImpactParticles}
         softBallVisuals={softBallVisuals}
+        overlay={(
+          <section
+            className="gameplay-hud"
+            aria-label="Level HUD"
+            data-ui-mount="hud-primary"
+            data-ui-consumer="selectors-events"
+          >
+            <div className="gameplay-hud__timer-display">
+              <strong className="gameplay-hud__timer-value">{formatHudSeconds(displayedElapsedTimeSeconds)}</strong>
+            </div>
+
+            <div className="gameplay-hud__hearts-display" aria-label={`体力 ${hp}/${HUD_HEART_COUNT}`}>
+              <div className="gameplay-hud__hearts-row">
+                {heartSlots.map((heart) => (
+                  <span
+                    key={heart.id}
+                    className={`gameplay-hud__heart${heart.isFilled ? " is-filled" : " is-empty"}`}
+                    aria-hidden="true"
+                  >
+                    ♥
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       />
 
       <section
@@ -447,10 +496,12 @@ export function GamePlayView() {
         <span className="eyebrow">UI Placeholder</span>
         <h2>第 3 关 HUD 占位</h2>
         <ul>
-          <li>score: {score}</li>
+          <li>elapsedTimeSeconds: {elapsedTimeSeconds}</li>
+          <li>timerStartedAt: {timerStartedAt ?? "-"}</li>
+          <li>isTimerRunning: {String(isTimerRunning)}</li>
+          <li>finalElapsedTimeSeconds: {finalElapsedTimeSeconds ?? "-"}</li>
           <li>hp: {hp}</li>
           <li>combo: {combo}</li>
-          <li>lastScoreDelta: {gameState.progress.lastScoreDelta}</li>
           <li>levelState: {levelState}</li>
           <li>clearReason: {gameState.clearReason ?? "-"}</li>
           <li>failReason: {gameState.failReason ?? "-"}</li>

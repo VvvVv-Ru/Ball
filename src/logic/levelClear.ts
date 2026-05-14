@@ -1,24 +1,26 @@
 import type { GameState } from "../types/game";
+import { stopLevelTimer } from "./levelTimer";
 
-export function resolveLevelClear(gameState: GameState): GameState {
+export function resolveLevelClear(gameState: GameState, now: number): GameState {
   if (gameState.status === "failed" || gameState.status === "clear") {
     return gameState;
   }
 
-  const remainingBalls = gameState.ballQueue.balls.length;
   const remainingTargets = gameState.playfield.borders.filter((border) => border.active).length;
 
-  if (remainingBalls > 0 || remainingTargets > 0) {
+  if (remainingTargets > 0) {
     return gameState;
   }
 
+  const timerStoppedState = stopLevelTimer(gameState, now);
+
   return {
-    ...gameState,
+    ...timerStoppedState,
     status: "clear",
     isInputLocked: true,
-    clearReason: "all_targets_cleared_and_no_balls",
+    clearReason: "all_targets_cleared",
     motion: {
-      ...gameState.motion,
+      ...timerStoppedState.motion,
       isLaunched: false,
       velocity: { x: 0, y: 0 },
       currentVector: null,

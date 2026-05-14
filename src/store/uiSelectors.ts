@@ -14,7 +14,12 @@ function getLevelState(state: GameStoreState): UiStateContract["levelState"] {
 }
 
 export const uiStateSelectors = {
-  score: (state: GameStoreState) => state.gameState?.progress.score ?? 0,
+  elapsedTimeMs: (state: GameStoreState) => state.gameState?.elapsedTimeMs ?? 0,
+  elapsedTimeSeconds: (state: GameStoreState) => state.gameState?.elapsedTimeSeconds ?? 0,
+  timerStartedAt: (state: GameStoreState) => state.gameState?.timerStartedAt ?? null,
+  isTimerRunning: (state: GameStoreState) => state.gameState?.isTimerRunning ?? false,
+  finalElapsedTimeMs: (state: GameStoreState) => state.gameState?.finalElapsedTimeMs ?? null,
+  finalElapsedTimeSeconds: (state: GameStoreState) => state.gameState?.finalElapsedTimeSeconds ?? null,
   hp: (state: GameStoreState) => state.gameState?.hp ?? 0,
   combo: (state: GameStoreState) => state.gameState?.progress.combo ?? 0,
   levelState: (state: GameStoreState) => getLevelState(state),
@@ -26,7 +31,12 @@ export const uiStateSelectors = {
 
 export function selectUiStateContract(state: GameStoreState): UiStateContract {
   return {
-    score: uiStateSelectors.score(state),
+    elapsedTimeMs: uiStateSelectors.elapsedTimeMs(state),
+    elapsedTimeSeconds: uiStateSelectors.elapsedTimeSeconds(state),
+    timerStartedAt: uiStateSelectors.timerStartedAt(state),
+    isTimerRunning: uiStateSelectors.isTimerRunning(state),
+    finalElapsedTimeMs: uiStateSelectors.finalElapsedTimeMs(state),
+    finalElapsedTimeSeconds: uiStateSelectors.finalElapsedTimeSeconds(state),
     hp: uiStateSelectors.hp(state),
     combo: uiStateSelectors.combo(state),
     levelState: uiStateSelectors.levelState(state),

@@ -3,7 +3,12 @@ import type { BallColorKey, BorderImpactKind, GameState, InputDirection, Pointer
 export type LevelState = "idle" | GameState["status"] | "playing" | "failed";
 
 export interface UiStateContract {
-  score: number;
+  elapsedTimeMs: number;
+  elapsedTimeSeconds: number;
+  timerStartedAt: number | null;
+  isTimerRunning: boolean;
+  finalElapsedTimeMs: number | null;
+  finalElapsedTimeSeconds: number | null;
   hp: number;
   combo: number;
   levelState: LevelState;
@@ -14,7 +19,8 @@ export interface UiStateContract {
 }
 
 export const UI_EVENT_NAMES = {
-  UI_UPDATE_SCORE: "UI_UPDATE_SCORE",
+  TIMER_STARTED: "TIMER_STARTED",
+  TIMER_UPDATED: "TIMER_UPDATED",
   COMBO_CHANGED: "COMBO_CHANGED",
   GAME_STATE_CHANGED: "GAME_STATE_CHANGED",
   INPUT_LOCK_CHANGED: "INPUT_LOCK_CHANGED",
@@ -33,10 +39,19 @@ export const UI_EVENT_NAMES = {
 
 export type UiEventName = (typeof UI_EVENT_NAMES)[keyof typeof UI_EVENT_NAMES];
 
-export interface UiUpdateScorePayload {
-  score: number;
-  combo: number;
-  reason: "placeholder" | "rule-update";
+export interface TimerStartedPayload {
+  elapsedTimeMs: number;
+  elapsedTimeSeconds: number;
+  timerStartedAt: number;
+}
+
+export interface TimerUpdatedPayload {
+  elapsedTimeMs: number;
+  elapsedTimeSeconds: number;
+  timerStartedAt: number | null;
+  isTimerRunning: boolean;
+  finalElapsedTimeMs: number | null;
+  finalElapsedTimeSeconds: number | null;
 }
 
 export interface GameStateChangedPayload {
@@ -124,7 +139,9 @@ export interface HpChangedPayload {
 
 export interface LevelClearPayload {
   levelId: string;
-  reason: "all_targets_cleared_and_no_balls";
+  reason: "all_targets_cleared";
+  finalElapsedTimeMs: number;
+  finalElapsedTimeSeconds: number;
 }
 
 export interface LevelFailPayload {
@@ -133,7 +150,8 @@ export interface LevelFailPayload {
 }
 
 export interface UiEventPayloadMap {
-  UI_UPDATE_SCORE: UiUpdateScorePayload;
+  TIMER_STARTED: TimerStartedPayload;
+  TIMER_UPDATED: TimerUpdatedPayload;
   COMBO_CHANGED: ComboChangedPayload;
   GAME_STATE_CHANGED: GameStateChangedPayload;
   INPUT_LOCK_CHANGED: InputLockChangedPayload;
