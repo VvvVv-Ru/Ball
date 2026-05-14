@@ -37,5 +37,32 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     isInputLocked: false,
     initialSpeed: levelConfig.gameplay.initialSpeed,
     hp: levelConfig.gameplay.initialHp,
+    inputConfig: {
+      triggerDistance: { ...levelConfig.gameplay.input.triggerDistance },
+      holdStillMaxMs: levelConfig.gameplay.input.holdStillMaxMs,
+    },
+    input: {
+      lastInputDirection: null,
+      lastInputVector: { x: 0, y: 0 },
+      lastInputAt: null,
+      inputCount: 0,
+      pointer: {
+        isPointerActive: false,
+        pointerStart: null,
+        lastPointer: null,
+        pointerType: null,
+        pointerStartedAt: null,
+        currentDistance: 0,
+        currentThreshold: null,
+        hasReachedThreshold: false,
+        hasTriggeredInCurrentGesture: false,
+      },
+    },
+    motion: {
+      isLaunched: false,
+      currentDirection: null,
+      currentSpeed: 0,
+      lastTickAt: null,
+    },
   };
 }

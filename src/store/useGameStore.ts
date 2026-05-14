@@ -1,7 +1,25 @@
 import { create } from "zustand";
 import { LEVELS, getLevelConfigById } from "../data/levels";
+import { applyInputIntent } from "../logic/applyInputIntent";
+import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
-import type { Border, BorderSegment, BorderUpdatePatch, GameStoreSelectors, GameStoreState, HeadBallIndex, Scene } from "../types/game";
+import {
+  cancelPointerGestureState,
+  endPointerGestureState,
+  startPointerGestureState,
+  updatePointerGestureState,
+} from "../logic/pointerGesture";
+import type {
+  Border,
+  BorderSegment,
+  BorderUpdatePatch,
+  GameStoreSelectors,
+  GameStoreState,
+  HeadBallIndex,
+  InputDirection,
+  PointerGesturePayload,
+  Scene,
+} from "../types/game";
 
 const initialSelectedLevelId = LEVELS[0]?.id ?? null;
 const initialBorderEditorState = {
@@ -128,6 +146,84 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       currentLevelId: levelConfig.id,
       gameState: createLevel3InitialGameState(levelConfig),
       borderEditor: initialBorderEditorState,
+    });
+  },
+  applyInput: (direction: InputDirection) => {
+    const occurredAt = Date.now();
+
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      return {
+        gameState: applyLaunchMotion(applyInputIntent(state.gameState, direction, occurredAt), direction),
+      };
+    });
+  },
+  tickMotion: (now: number) => {
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      const nextGameState = advanceHeadMotion(state.gameState, now);
+
+      if (nextGameState === state.gameState) {
+        return state;
+      }
+
+      return {
+        gameState: nextGameState,
+      };
+    });
+  },
+  startPointerGesture: (payload: PointerGesturePayload) => {
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      return {
+        gameState: startPointerGestureState(state.gameState, payload),
+      };
+    });
+  },
+  updatePointerGesture: (payload: PointerGesturePayload) => {
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      const { nextState, triggeredDirection } = updatePointerGestureState(state.gameState, payload);
+
+      return {
+        gameState: triggeredDirection
+          ? applyLaunchMotion(applyInputIntent(nextState, triggeredDirection, payload.at), triggeredDirection)
+          : nextState,
+      };
+    });
+  },
+  endPointerGesture: (payload: PointerGesturePayload) => {
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      return {
+        gameState: endPointerGestureState(state.gameState, payload),
+      };
+    });
+  },
+  cancelPointerGesture: () => {
+    set((state) => {
+      if (!state.gameState) {
+        return state;
+      }
+
+      return {
+        gameState: cancelPointerGestureState(state.gameState),
+      };
     });
   },
   setHeadIndex: (headIndex: HeadBallIndex) => {
@@ -359,6 +455,9 @@ export const gameStoreSelectors: GameStoreSelectors = {
   selectBallQueue: (state) => state.gameState?.ballQueue ?? null,
   selectBorders: (state) => state.gameState?.playfield.borders ?? [],
   selectBorderEditor: (state) => state.borderEditor,
+  selectInputState: (state) => state.gameState?.input ?? null,
+  selectMotionState: (state) => state.gameState?.motion ?? null,
+  selectPointerGesture: (state) => state.gameState?.input.pointer ?? null,
   selectHeadIndex: (state) => state.gameState?.headIndex ?? null,
   selectCurrentHeadColor: (state) => state.gameState?.currentHeadColor ?? null,
   selectIsInputLocked: (state) => state.gameState?.isInputLocked ?? false,

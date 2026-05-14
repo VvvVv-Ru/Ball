@@ -6,6 +6,10 @@ export type BallColorKey = "red" | "blue" | "yellow";
 
 export type BorderSide = "top" | "right" | "bottom" | "left";
 
+export type InputDirection = "up" | "down" | "left" | "right";
+
+export type PointerInputSource = "mouse" | "touch" | "pen" | "unknown";
+
 export type HeadBallIndex = number;
 
 export interface Vector2 {
@@ -68,6 +72,12 @@ export interface BallQueue {
 export interface LevelGameplayConfig {
   initialSpeed: number;
   initialHp: number;
+  input: LevelInputConfig;
+}
+
+export interface LevelInputConfig {
+  triggerDistance: Record<PointerInputSource, number>;
+  holdStillMaxMs: number;
 }
 
 export interface LevelNotes {
@@ -89,6 +99,39 @@ export interface LevelConfig {
   notes: LevelNotes;
 }
 
+export interface InputState {
+  lastInputDirection: InputDirection | null;
+  lastInputVector: Vector2;
+  lastInputAt: number | null;
+  inputCount: number;
+  pointer: PointerGestureState;
+}
+
+export interface PointerGestureState {
+  isPointerActive: boolean;
+  pointerStart: Vector2 | null;
+  lastPointer: Vector2 | null;
+  pointerType: PointerInputSource | null;
+  pointerStartedAt: number | null;
+  currentDistance: number;
+  currentThreshold: number | null;
+  hasReachedThreshold: boolean;
+  hasTriggeredInCurrentGesture: boolean;
+}
+
+export interface PointerGesturePayload {
+  position: Vector2;
+  pointerType: PointerInputSource;
+  at: number;
+}
+
+export interface MotionState {
+  isLaunched: boolean;
+  currentDirection: InputDirection | null;
+  currentSpeed: number;
+  lastTickAt: number | null;
+}
+
 export interface GameState {
   levelId: LevelId;
   status: "ready";
@@ -100,6 +143,9 @@ export interface GameState {
   isInputLocked: boolean;
   initialSpeed: number;
   hp: number;
+  inputConfig: LevelInputConfig;
+  input: InputState;
+  motion: MotionState;
 }
 
 export interface BorderEditorState {
@@ -124,6 +170,12 @@ export interface GameStoreState {
   selectLevel: (levelId: LevelId) => void;
   loadLevel3Config: () => void;
   resetLevel3State: () => void;
+  applyInput: (direction: InputDirection) => void;
+  tickMotion: (now: number) => void;
+  startPointerGesture: (payload: PointerGesturePayload) => void;
+  updatePointerGesture: (payload: PointerGesturePayload) => void;
+  endPointerGesture: (payload: PointerGesturePayload) => void;
+  cancelPointerGesture: () => void;
   setHeadIndex: (headIndex: HeadBallIndex) => void;
   setInputLocked: (isLocked: boolean) => void;
   toggleBorderEditor: () => void;
@@ -143,6 +195,9 @@ export interface GameStoreSelectors {
   selectBallQueue: (state: GameStoreState) => BallQueue | null;
   selectBorders: (state: GameStoreState) => Border[];
   selectBorderEditor: (state: GameStoreState) => BorderEditorState;
+  selectInputState: (state: GameStoreState) => InputState | null;
+  selectMotionState: (state: GameStoreState) => MotionState | null;
+  selectPointerGesture: (state: GameStoreState) => PointerGestureState | null;
   selectHeadIndex: (state: GameStoreState) => HeadBallIndex | null;
   selectCurrentHeadColor: (state: GameStoreState) => BallColorKey | null;
   selectIsInputLocked: (state: GameStoreState) => boolean;

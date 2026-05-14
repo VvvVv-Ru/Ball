@@ -103,10 +103,25 @@ export function Board({ gameState }: { gameState: GameState }) {
           </div>
 
           <div className="board-debug-panel" aria-label="Board debug info">
-            <span>Board / DOM</span>
+            <span>isLaunched: {String(gameState.motion.isLaunched)}</span>
+            <span>currentDirection: {gameState.motion.currentDirection ?? "-"}</span>
+            <span>currentSpeed: {gameState.motion.currentSpeed}</span>
+            <span>
+              headPosition: {gameState.ballQueue.balls[gameState.headIndex]?.position.x.toFixed(1) ?? "-"},
+              {gameState.ballQueue.balls[gameState.headIndex]?.position.y.toFixed(1) ?? "-"}
+            </span>
             <span>headIndex: {gameState.headIndex}</span>
             <span>headColor: {gameState.currentHeadColor ?? "-"}</span>
+            <span>lastInputDirection: {gameState.input.lastInputDirection ?? "-"}</span>
+            <span>lastInputAt: {gameState.input.lastInputAt ?? "-"}</span>
+            <span>inputCount: {gameState.input.inputCount}</span>
+            <span>isInputLocked: {String(gameState.isInputLocked)}</span>
+            <span>pointerType: {gameState.input.pointer.pointerType ?? "-"}</span>
+            <span>pointerDistance: {gameState.input.pointer.currentDistance.toFixed(1)}</span>
+            <span>thresholdReached: {String(gameState.input.pointer.hasReachedThreshold)}</span>
+            <span>gestureTriggered: {String(gameState.input.pointer.hasTriggeredInCurrentGesture)}</span>
           </div>
+
         </div>
       </section>
     </div>

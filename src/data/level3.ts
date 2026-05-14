@@ -10,6 +10,13 @@ const LEVEL3_BORDER_THICKNESS = 54;
 const LEVEL3_BALL_SURFACE_GAP = 14;
 const LEVEL3_INITIAL_SPEED = 700;
 const LEVEL3_INITIAL_HP = 3;
+const LEVEL3_POINTER_TRIGGER_DISTANCE = {
+  mouse: 8,
+  touch: 10,
+  pen: 10,
+  unknown: 10,
+} as const;
+const LEVEL3_POINTER_HOLD_STILL_MAX_MS = 300;
 const LEVEL3_PLAYFIELD_CENTER: Vector2 = {
   x: LEVEL3_VIEWPORT.width / 2,
   y: LEVEL3_VIEWPORT.height / 2 + 120,
@@ -147,6 +154,10 @@ export const level3Config: LevelConfig = {
   gameplay: {
     initialSpeed: LEVEL3_INITIAL_SPEED,
     initialHp: LEVEL3_INITIAL_HP,
+    input: {
+      triggerDistance: { ...LEVEL3_POINTER_TRIGGER_DISTANCE },
+      holdStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
+    },
   },
   notes: {
     placement: "玩法区以舞台中心为基准，Y 轴下移 120px，保持居中略偏下。",
@@ -160,5 +171,7 @@ export const LEVEL3_CONSTANTS = {
   ballSurfaceGap: LEVEL3_BALL_SURFACE_GAP,
   initialSpeed: LEVEL3_INITIAL_SPEED,
   initialHp: LEVEL3_INITIAL_HP,
+  pointerTriggerDistance: LEVEL3_POINTER_TRIGGER_DISTANCE,
+  pointerHoldStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
   colorPool: LEVEL3_COLOR_POOL,
 } as const;
