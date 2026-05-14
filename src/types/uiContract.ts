@@ -99,7 +99,7 @@ export interface CollisionMismatchPayload {
 }
 
 export interface InputAimUpdatePayload {
-  direction: InputDirection;
+  direction: InputDirection | null;
   vector: Vector2;
   source: "keyboard" | PointerInputSource;
   occurredAt: number;

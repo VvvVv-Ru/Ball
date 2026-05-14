@@ -7,7 +7,29 @@ const INPUT_VECTORS: Record<InputDirection, Vector2> = {
   right: { x: 1, y: 0 },
 };
 
-export function calculateNextStateFromInput(gameState: GameState, direction: InputDirection, occurredAt: number): GameState {
+function normalizeVector(vector: Vector2) {
+  const magnitude = Math.hypot(vector.x, vector.y);
+
+  if (magnitude <= 0) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: vector.x / magnitude,
+    y: vector.y / magnitude,
+  };
+}
+
+export function getInputVectorFromDirection(direction: InputDirection) {
+  return { ...INPUT_VECTORS[direction] };
+}
+
+export function calculateNextStateFromInput(
+  gameState: GameState,
+  vector: Vector2,
+  occurredAt: number,
+  direction: InputDirection | null = null,
+): GameState {
   if (gameState.isInputLocked) {
     return gameState;
   }
@@ -17,7 +39,7 @@ export function calculateNextStateFromInput(gameState: GameState, direction: Inp
     input: {
       ...gameState.input,
       lastInputDirection: direction,
-      lastInputVector: { ...INPUT_VECTORS[direction] },
+      lastInputVector: normalizeVector(vector),
       lastInputAt: occurredAt,
       inputCount: gameState.input.inputCount + 1,
     },

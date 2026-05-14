@@ -94,6 +94,14 @@ function createStageShakeStyle(stageShake: StageShakeState | null): CSSPropertie
   } as CSSProperties;
 }
 
+function formatVector(vector: { x: number; y: number } | null | undefined) {
+  if (!vector) {
+    return "-";
+  }
+
+  return `${vector.x.toFixed(2)}, ${vector.y.toFixed(2)}`;
+}
+
 export function Board(
   { gameState, stageShake = null, borderImpactRings = [] }: { gameState: GameState; stageShake?: StageShakeState | null; borderImpactRings?: BorderImpactRingEffect[] },
 ) {
@@ -163,7 +171,7 @@ export function Board(
             <span>clearReason: {gameState.clearReason ?? "-"}</span>
             <span>failReason: {gameState.failReason ?? "-"}</span>
             <span>isLaunched: {String(gameState.motion.isLaunched)}</span>
-            <span>currentDirection: {gameState.motion.currentDirection ?? "-"}</span>
+            <span>currentVector: {formatVector(gameState.motion.currentVector)}</span>
             <span>currentSpeed: {gameState.motion.currentSpeed}</span>
             <span>queueLength: {gameState.ballQueue.balls.length}</span>
             <span>queueGap: {gameState.ballQueue.surfaceGap}</span>
@@ -171,7 +179,7 @@ export function Board(
             <span>lastRedirectAt: {gameState.motion.lastRedirectAt ?? "-"}</span>
             <span>redirectCooldownMs: {gameState.motion.redirectCooldownMs}</span>
             <span>isRedirectCooling: {String(gameState.motion.isRedirectCooling)}</span>
-            <span>lastAcceptedDirection: {gameState.motion.lastAcceptedDirection ?? "-"}</span>
+            <span>lastAcceptedVector: {formatVector(gameState.motion.lastAcceptedVector)}</span>
             <span>
               headPosition: {gameState.ballQueue.balls[gameState.headIndex]?.position.x.toFixed(1) ?? "-"},
               {gameState.ballQueue.balls[gameState.headIndex]?.position.y.toFixed(1) ?? "-"}
@@ -194,7 +202,8 @@ export function Board(
               {" -> "}
               {gameState.collision.lastReflectionAfter?.x ?? "-"},{gameState.collision.lastReflectionAfter?.y ?? "-"}
             </span>
-            <span>lastInputDirection: {gameState.input.lastInputDirection ?? "-"}</span>
+            <span>lastInputDirection: {gameState.input.lastInputDirection ?? "free-aim"}</span>
+            <span>lastInputVector: {formatVector(gameState.input.lastInputVector)}</span>
             <span>lastInputAt: {gameState.input.lastInputAt ?? "-"}</span>
             <span>inputCount: {gameState.input.inputCount}</span>
             <span>isInputLocked: {String(gameState.isInputLocked)}</span>

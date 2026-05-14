@@ -1,11 +1,4 @@
-import type { BallColorKey, Border, CollisionType, GameState, InputDirection, Vector2 } from "../types/game";
-
-const DIRECTION_VECTORS: Record<InputDirection, Vector2> = {
-  up: { x: 0, y: -1 },
-  down: { x: 0, y: 1 },
-  left: { x: -1, y: 0 },
-  right: { x: 1, y: 0 },
-};
+import type { BallColorKey, Border, CollisionType, GameState, Vector2 } from "../types/game";
 
 const BORDER_COLOR_KEY_MAP: Record<string, BallColorKey> = {
   "#d23714": "red",
@@ -13,16 +6,18 @@ const BORDER_COLOR_KEY_MAP: Record<string, BallColorKey> = {
   "#efb323": "yellow",
 };
 
-function toVector(direction: InputDirection) {
-  return DIRECTION_VECTORS[direction];
-}
+const COLLISION_TIME_TOLERANCE = 0.0001;
 
-function reflectDirection(direction: InputDirection, side: Border["side"]): InputDirection {
+function reflectVector(vector: Vector2, side: Border["side"]): Vector2 {
   if (side === "top" || side === "bottom") {
-    return direction === "up" ? "down" : direction === "down" ? "up" : direction;
+    return { x: vector.x, y: -vector.y };
   }
 
-  return direction === "left" ? "right" : direction === "right" ? "left" : direction;
+  return { x: -vector.x, y: vector.y };
+}
+
+function reflectVectorBySides(vector: Vector2, sides: Border["side"][]) {
+  return sides.reduce((current, side) => reflectVector(current, side), vector);
 }
 
 function getInnerBounds(gameState: GameState, radius: number) {
@@ -40,58 +35,77 @@ function getBorderBySide(gameState: GameState, side: Border["side"]) {
   return gameState.playfield.borders.find((border) => border.side === side && border.active) ?? null;
 }
 
+function getCollisionCandidates(current: Vector2, next: Vector2, bounds: ReturnType<typeof getInnerBounds>) {
+  const deltaX = next.x - current.x;
+  const deltaY = next.y - current.y;
+  const candidates: Array<{ side: Border["side"]; time: number }> = [];
+
+  if (deltaX > 0 && next.x >= bounds.maxX) {
+    candidates.push({ side: "right", time: (bounds.maxX - current.x) / deltaX });
+  }
+
+  if (deltaX < 0 && next.x <= bounds.minX) {
+    candidates.push({ side: "left", time: (bounds.minX - current.x) / deltaX });
+  }
+
+  if (deltaY > 0 && next.y >= bounds.maxY) {
+    candidates.push({ side: "bottom", time: (bounds.maxY - current.y) / deltaY });
+  }
+
+  if (deltaY < 0 && next.y <= bounds.minY) {
+    candidates.push({ side: "top", time: (bounds.minY - current.y) / deltaY });
+  }
+
+  return candidates.filter((candidate) => candidate.time >= -COLLISION_TIME_TOLERANCE && candidate.time <= 1 + COLLISION_TIME_TOLERANCE);
+}
+
 export function resolveHeadBorderCollision(gameState: GameState, nextHeadPosition: Vector2) {
   const headBall = gameState.ballQueue.balls[gameState.headIndex];
-  const currentDirection = gameState.motion.currentDirection;
+  const currentVector = gameState.motion.currentVector;
 
-  if (!headBall || !currentDirection) {
+  if (!headBall || !currentVector) {
     return null;
   }
 
   const bounds = getInnerBounds(gameState, headBall.radius);
-  let collisionSide: Border["side"] | null = null;
-  let resolvedPosition = { ...nextHeadPosition };
+  const currentPosition = headBall.position;
+  const candidates = getCollisionCandidates(currentPosition, nextHeadPosition, bounds);
 
-  if (currentDirection === "up" && nextHeadPosition.y <= bounds.minY) {
-    collisionSide = "top";
-    resolvedPosition.y = bounds.minY;
-  } else if (currentDirection === "down" && nextHeadPosition.y >= bounds.maxY) {
-    collisionSide = "bottom";
-    resolvedPosition.y = bounds.maxY;
-  } else if (currentDirection === "left" && nextHeadPosition.x <= bounds.minX) {
-    collisionSide = "left";
-    resolvedPosition.x = bounds.minX;
-  } else if (currentDirection === "right" && nextHeadPosition.x >= bounds.maxX) {
-    collisionSide = "right";
-    resolvedPosition.x = bounds.maxX;
-  }
-
-  if (!collisionSide) {
+  if (candidates.length === 0) {
     return null;
   }
 
-  const border = getBorderBySide(gameState, collisionSide);
+  const earliestTime = Math.max(0, Math.min(...candidates.map((candidate) => candidate.time)));
+  const hitSides = candidates
+    .filter((candidate) => Math.abs(candidate.time - earliestTime) <= COLLISION_TIME_TOLERANCE)
+    .map((candidate) => candidate.side);
+  const primarySide = hitSides[0];
+  const border = primarySide ? getBorderBySide(gameState, primarySide) : null;
 
-  if (!border) {
+  if (!primarySide || !border) {
     return null;
   }
 
-  const nextDirection = reflectDirection(currentDirection, collisionSide);
-  const beforeVector = toVector(currentDirection);
-  const afterVector = toVector(nextDirection);
+  const deltaX = nextHeadPosition.x - currentPosition.x;
+  const deltaY = nextHeadPosition.y - currentPosition.y;
+  const resolvedPosition = {
+    x: Math.min(bounds.maxX, Math.max(bounds.minX, currentPosition.x + deltaX * earliestTime)),
+    y: Math.min(bounds.maxY, Math.max(bounds.minY, currentPosition.y + deltaY * earliestTime)),
+  };
+  const afterVector = reflectVectorBySides(currentVector, hitSides);
   const borderColorKey = BORDER_COLOR_KEY_MAP[border.color.toLowerCase()] ?? null;
   const collisionType: CollisionType = borderColorKey === gameState.currentHeadColor ? "match" : "mismatch";
 
   return {
     resolvedPosition,
-    nextDirection,
+    nextVector: afterVector,
     collision: {
       borderId: border.id,
       side: border.side,
       type: collisionType,
       borderColor: borderColorKey,
       headColor: gameState.currentHeadColor,
-      beforeVector,
+      beforeVector: currentVector,
       afterVector,
     },
   };

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { LEVELS, getLevelConfigById } from "../data/levels";
-import { applyInputIntent } from "../logic/applyInputIntent";
+import { applyInputIntent, getInputVectorFromDirection } from "../logic/applyInputIntent";
 import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
 import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
@@ -232,11 +232,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
-      const nextGameState = applyLaunchMotion(applyInputIntent(state.gameState, direction, occurredAt), direction, occurredAt);
+      const inputVector = getInputVectorFromDirection(direction);
+      const nextGameState = applyLaunchMotion(applyInputIntent(state.gameState, inputVector, occurredAt, direction), inputVector, occurredAt);
 
       gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
         direction,
-        vector: nextGameState.input.lastInputVector,
+        vector: inputVector,
         source: "keyboard",
         occurredAt,
       });
@@ -383,16 +384,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
-      const { nextState, triggeredDirection } = updatePointerGestureState(state.gameState, payload);
+      const { nextState, triggeredVector } = updatePointerGestureState(state.gameState, payload);
 
-      const nextGameState = triggeredDirection
-        ? applyLaunchMotion(applyInputIntent(nextState, triggeredDirection, payload.at), triggeredDirection, payload.at)
+      const nextGameState = triggeredVector
+        ? applyLaunchMotion(applyInputIntent(nextState, triggeredVector, payload.at, null), triggeredVector, payload.at)
         : nextState;
 
-      if (triggeredDirection) {
+      if (triggeredVector) {
         gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
-          direction: triggeredDirection,
-          vector: nextGameState.input.lastInputVector,
+          direction: null,
+          vector: triggeredVector,
           source: payload.pointerType,
           occurredAt: payload.at,
         });

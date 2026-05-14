@@ -1,17 +1,27 @@
-import type { BorderImpactKind, BorderSide, GameState, InputDirection, ShakeIntensity, Vector2 } from "../types/game";
+import type { BorderImpactKind, BorderSide, GameState, ShakeIntensity, Vector2 } from "../types/game";
 import { resolveDelayedBorderTrigger } from "./delayedBorderResolution";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
 import { resolveHeadMatch } from "./headMatchResolution";
 
-const DIRECTION_VECTORS: Record<InputDirection, Vector2> = {
-  up: { x: 0, y: -1 },
-  down: { x: 0, y: 1 },
-  left: { x: -1, y: 0 },
-  right: { x: 1, y: 0 },
-};
+function normalizeVector(vector: Vector2) {
+  const magnitude = Math.hypot(vector.x, vector.y);
 
-function getDirectionVector(direction: InputDirection) {
-  return DIRECTION_VECTORS[direction];
+  if (magnitude <= 0) {
+    return null;
+  }
+
+  return {
+    x: vector.x / magnitude,
+    y: vector.y / magnitude,
+  };
+}
+
+function areVectorsEffectivelySame(left: Vector2 | null, right: Vector2 | null) {
+  if (!left || !right) {
+    return false;
+  }
+
+  return Math.abs(left.x - right.x) <= 0.0001 && Math.abs(left.y - right.y) <= 0.0001;
 }
 
 function getLinkDistance(gameState: GameState, leaderIndex: number, followerIndex: number) {
@@ -216,13 +226,19 @@ interface AdvanceHeadMotionResult {
   } | null;
 }
 
-export function applyLaunchMotion(gameState: GameState, direction: InputDirection, occurredAt: number): GameState {
+export function applyLaunchMotion(gameState: GameState, vector: Vector2, occurredAt: number): GameState {
   if (gameState.isInputLocked) {
     return gameState;
   }
 
+  const normalizedVector = normalizeVector(vector);
+
+  if (!normalizedVector) {
+    return gameState;
+  }
+
   const isAlreadyLaunched = gameState.motion.isLaunched;
-  const isSameDirection = gameState.motion.currentDirection === direction;
+  const isSameDirection = areVectorsEffectivelySame(gameState.motion.currentVector, normalizedVector);
   const isRedirectCooling = isAlreadyLaunched && !isSameDirection && getRedirectCoolingState(gameState, occurredAt);
 
   if (isRedirectCooling) {
@@ -240,12 +256,12 @@ export function applyLaunchMotion(gameState: GameState, direction: InputDirectio
     motion: {
       ...gameState.motion,
       isLaunched: true,
-      currentDirection: direction,
+      currentVector: normalizedVector,
       currentSpeed: gameState.initialSpeed,
       lastTickAt: occurredAt,
       lastRedirectAt: isAlreadyLaunched ? occurredAt : gameState.motion.lastRedirectAt,
       isRedirectCooling: isAlreadyLaunched && !isSameDirection,
-      lastAcceptedDirection: direction,
+      lastAcceptedVector: normalizedVector,
     },
   };
 }
@@ -254,7 +270,7 @@ export function advanceHeadMotion(
   gameState: GameState,
   now: number,
 ): AdvanceHeadMotionResult {
-  if (!gameState.motion.isLaunched || !gameState.motion.currentDirection) {
+  if (!gameState.motion.isLaunched || !gameState.motion.currentVector) {
     return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
@@ -288,7 +304,7 @@ export function advanceHeadMotion(
     return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
-  const vector = getDirectionVector(gameState.motion.currentDirection);
+  const vector = gameState.motion.currentVector;
   const moveDistance = gameState.motion.currentSpeed * deltaSeconds;
   const nextHeadPosition = {
     x: headBall.position.x + vector.x * moveDistance,
@@ -303,9 +319,9 @@ export function advanceHeadMotion(
   );
   const borderImpact = collisionResult ? getBorderImpact(collisionResult, gameState, now, isDelayedBorderTrigger) : null;
   const resolvedHeadPosition = collisionResult?.resolvedPosition ?? nextHeadPosition;
-  const nextDirection = collisionResult?.collision.type === "mismatch" || isDelayedBorderTrigger
-    ? (collisionResult?.nextDirection ?? gameState.motion.currentDirection)
-    : gameState.motion.currentDirection;
+  const nextVector = collisionResult?.collision.type === "mismatch" || isDelayedBorderTrigger
+    ? (collisionResult?.nextVector ?? gameState.motion.currentVector)
+    : gameState.motion.currentVector;
   const nextPath = trimPath(
     [{ ...resolvedHeadPosition }, ...gameState.motion.headPath],
     getQueueOffsets(gameState)[gameState.ballQueue.balls.length - 1] + gameState.motion.currentSpeed,
@@ -337,7 +353,7 @@ export function advanceHeadMotion(
     },
     motion: {
       ...gameState.motion,
-      currentDirection: nextDirection,
+      currentVector: nextVector,
       lastTickAt: now,
       isRedirectCooling,
       headPath: nextPath,

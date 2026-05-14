@@ -63,7 +63,16 @@ function getShakeRank(intensity: ShakeIntensity | null) {
   return 0;
 }
 
+function formatVector(vector: { x: number; y: number } | null | undefined) {
+  if (!vector) {
+    return "-";
+  }
+
+  return `${vector.x.toFixed(2)}, ${vector.y.toFixed(2)}`;
+}
+
 export function GamePlayView() {
+  const isHudPlaceholderVisible = false;
   const currentLevelId = useGameStore(gameStoreSelectors.selectCurrentLevelId);
   const gameState = useGameStore(gameStoreSelectors.selectGameState);
   const score = useGameStore(uiStateSelectors.score);
@@ -217,7 +226,8 @@ export function GamePlayView() {
       setLatestUiEvent(`GAME_STATE_CHANGED:${payload.levelState}`);
     });
     const unsubscribeAimUpdate = gameUiEventBus.subscribe(UI_EVENT_NAMES.INPUT_AIM_UPDATE, (payload) => {
-      setLatestUiEvent(`INPUT_AIM_UPDATE:${payload.direction}/${payload.source}`);
+      const aimLabel = payload.direction ?? `${payload.vector.x.toFixed(2)},${payload.vector.y.toFixed(2)}`;
+      setLatestUiEvent(`INPUT_AIM_UPDATE:${aimLabel}/${payload.source}`);
     });
     const unsubscribeMismatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, (payload) => {
       setLatestUiEvent(`ON_COLLISION_MISMATCH:${payload.borderId}/${payload.expectedColor}`);
@@ -411,8 +421,10 @@ export function GamePlayView() {
       <section
         className="ui-shell ui-shell--left"
         aria-label="HUD placeholder"
+        aria-hidden={!isHudPlaceholderVisible}
         data-ui-mount="hud"
         data-ui-consumer="selectors-events"
+        hidden={!isHudPlaceholderVisible}
       >
         <span className="eyebrow">UI Placeholder</span>
         <h2>第 3 关 HUD 占位</h2>
@@ -455,7 +467,7 @@ export function GamePlayView() {
           </li>
           <li>initialSpeed: {gameState.initialSpeed}</li>
           <li>isLaunched: {String(motionState?.isLaunched ?? false)}</li>
-          <li>currentDirection: {motionState?.currentDirection ?? "-"}</li>
+          <li>currentVector: {formatVector(motionState?.currentVector)}</li>
           <li>currentSpeed: {motionState?.currentSpeed ?? 0}</li>
           <li>queueLength: {gameState.ballQueue.balls.length}</li>
           <li>queueGap: {gameState.ballQueue.surfaceGap}</li>
@@ -463,12 +475,13 @@ export function GamePlayView() {
           <li>lastRedirectAt: {motionState?.lastRedirectAt ?? "-"}</li>
           <li>redirectCooldownMs: {motionState?.redirectCooldownMs ?? 0}</li>
           <li>isRedirectCooling: {String(motionState?.isRedirectCooling ?? false)}</li>
-          <li>lastAcceptedDirection: {motionState?.lastAcceptedDirection ?? "-"}</li>
+          <li>lastAcceptedVector: {formatVector(motionState?.lastAcceptedVector)}</li>
           <li>
             headPosition: {gameState.ballQueue.balls[gameState.headIndex]?.position.x.toFixed(1) ?? "-"},
             {gameState.ballQueue.balls[gameState.headIndex]?.position.y.toFixed(1) ?? "-"}
           </li>
-          <li>lastInputDirection: {inputState?.lastInputDirection ?? "-"}</li>
+          <li>lastInputDirection: {inputState?.lastInputDirection ?? "free-aim"}</li>
+          <li>lastInputVector: {formatVector(inputState?.lastInputVector)}</li>
           <li>lastInputAt: {inputState?.lastInputAt ?? "-"}</li>
           <li>inputCount: {inputState?.inputCount ?? 0}</li>
           <li>pointerType: {pointerGesture?.pointerType ?? "-"}</li>

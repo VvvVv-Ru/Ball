@@ -176,13 +176,13 @@ export interface PointerGesturePayload {
 
 export interface MotionState {
   isLaunched: boolean;
-  currentDirection: InputDirection | null;
+  currentVector: Vector2 | null;
   currentSpeed: number;
   lastTickAt: number | null;
   lastRedirectAt: number | null;
   redirectCooldownMs: number;
   isRedirectCooling: boolean;
-  lastAcceptedDirection: InputDirection | null;
+  lastAcceptedVector: Vector2 | null;
   headPath: Vector2[];
   maxQueueStretch: number;
 }
