@@ -31,6 +31,15 @@ const LEVEL3_BORDER_IMPACT_SHAKE = {
     cooldownMs: 100,
   },
 } as const;
+const LEVEL3_CAMERA_FOLLOW = {
+  enabled: true,
+  launchOnlyAfterStart: true,
+  deadZonePx: 99,
+  maxOffsetX: 4,
+  maxOffsetY: 3,
+  followLerp: 0.04,
+  returnLerp: 0.04,
+} as const;
 const LEVEL3_BORDER_IMPACT_RING = {
   enabled: true,
   strokeWidth: 0.4,
@@ -226,6 +235,15 @@ export const level3Config: LevelConfig = {
         light: { ...LEVEL3_BORDER_IMPACT_SHAKE.light },
         medium: { ...LEVEL3_BORDER_IMPACT_SHAKE.medium },
       },
+      cameraFollow: {
+        enabled: LEVEL3_CAMERA_FOLLOW.enabled,
+        launchOnlyAfterStart: LEVEL3_CAMERA_FOLLOW.launchOnlyAfterStart,
+        deadZonePx: LEVEL3_CAMERA_FOLLOW.deadZonePx,
+        maxOffsetX: LEVEL3_CAMERA_FOLLOW.maxOffsetX,
+        maxOffsetY: LEVEL3_CAMERA_FOLLOW.maxOffsetY,
+        followLerp: LEVEL3_CAMERA_FOLLOW.followLerp,
+        returnLerp: LEVEL3_CAMERA_FOLLOW.returnLerp,
+      },
       borderImpactRing: {
         enabled: LEVEL3_BORDER_IMPACT_RING.enabled,
         strokeWidth: LEVEL3_BORDER_IMPACT_RING.strokeWidth,
@@ -286,6 +304,7 @@ export const LEVEL3_CONSTANTS = {
   redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
   swipeLaunch: LEVEL3_SWIPE_LAUNCH_TUNING,
   borderImpactShake: LEVEL3_BORDER_IMPACT_SHAKE,
+  cameraFollow: LEVEL3_CAMERA_FOLLOW,
   borderImpactRing: LEVEL3_BORDER_IMPACT_RING,
   matchImpactParticles: LEVEL3_MATCH_IMPACT_PARTICLES,
   softBall: LEVEL3_SOFT_BALL,

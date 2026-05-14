@@ -53,6 +53,15 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
         light: { ...levelConfig.gameplay.tuning.borderImpactShake.light },
         medium: { ...levelConfig.gameplay.tuning.borderImpactShake.medium },
       },
+      cameraFollow: {
+        enabled: levelConfig.gameplay.tuning.cameraFollow.enabled,
+        launchOnlyAfterStart: levelConfig.gameplay.tuning.cameraFollow.launchOnlyAfterStart,
+        deadZonePx: levelConfig.gameplay.tuning.cameraFollow.deadZonePx,
+        maxOffsetX: levelConfig.gameplay.tuning.cameraFollow.maxOffsetX,
+        maxOffsetY: levelConfig.gameplay.tuning.cameraFollow.maxOffsetY,
+        followLerp: levelConfig.gameplay.tuning.cameraFollow.followLerp,
+        returnLerp: levelConfig.gameplay.tuning.cameraFollow.returnLerp,
+      },
       borderImpactRing: {
         enabled: levelConfig.gameplay.tuning.borderImpactRing.enabled,
         strokeWidth: levelConfig.gameplay.tuning.borderImpactRing.strokeWidth,

@@ -8,6 +8,7 @@ import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeC
 import { UI_EVENT_NAMES } from "../types/uiContract";
 import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
+import { useCameraFollow } from "./useCameraFollow";
 import { useMatchImpactParticles } from "./useMatchImpactParticles";
 import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
@@ -104,6 +105,7 @@ export function GamePlayView() {
   const ringCleanupTimeoutRef = useRef<number | null>(null);
   const lastShakeStartedAtRef = useRef<number>(-Infinity);
   const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
+  const cameraFollow = useCameraFollow(gameState);
   const matchImpactParticles = useMatchImpactParticles(gameState);
   const softBallVisuals = useSoftBallVisuals(gameState);
 
@@ -427,6 +429,7 @@ export function GamePlayView() {
       <Board
         gameState={gameState}
         stageShake={stageShake}
+        cameraFollow={cameraFollow}
         borderImpactRings={borderImpactRings}
         matchImpactParticles={matchImpactParticles}
         softBallVisuals={softBallVisuals}
@@ -459,6 +462,15 @@ export function GamePlayView() {
           <li>shakeEnabled: {String(gameState.tuningConfig.borderImpactShake.enabled)}</li>
           <li>shakeLightAmplitude: {gameState.tuningConfig.borderImpactShake.light.amplitude}</li>
           <li>shakeMediumAmplitude: {gameState.tuningConfig.borderImpactShake.medium.amplitude}</li>
+          <li>cameraFollowEnabled: {String(gameState.tuningConfig.cameraFollow.enabled)}</li>
+          <li>cameraDeadZonePx: {gameState.tuningConfig.cameraFollow.deadZonePx}</li>
+          <li>cameraMaxOffsetX: {gameState.tuningConfig.cameraFollow.maxOffsetX}</li>
+          <li>cameraMaxOffsetY: {gameState.tuningConfig.cameraFollow.maxOffsetY}</li>
+          <li>cameraFollowLerp: {gameState.tuningConfig.cameraFollow.followLerp}</li>
+          <li>cameraReturnLerp: {gameState.tuningConfig.cameraFollow.returnLerp}</li>
+          <li>cameraActive: {String(cameraFollow.isActive)}</li>
+          <li>cameraOffset: {cameraFollow.offsetX.toFixed(1)}, {cameraFollow.offsetY.toFixed(1)}</li>
+          <li>cameraTarget: {cameraFollow.targetX.toFixed(1)}, {cameraFollow.targetY.toFixed(1)}</li>
           <li>ringEnabled: {String(gameState.tuningConfig.borderImpactRing.enabled)}</li>
           <li>ringStrokeWidth: {gameState.tuningConfig.borderImpactRing.strokeWidth}</li>
           <li>ringDurationMs: {gameState.tuningConfig.borderImpactRing.durationMs}</li>

@@ -118,6 +118,16 @@ export interface BorderImpactRingConfig {
   alphaFade: boolean;
 }
 
+export interface CameraFollowConfig {
+  enabled: boolean;
+  launchOnlyAfterStart: boolean;
+  deadZonePx: number;
+  maxOffsetX: number;
+  maxOffsetY: number;
+  followLerp: number;
+  returnLerp: number;
+}
+
 export type MatchImpactParticleOpacityCurve = "linear" | "ease-out";
 
 export interface MatchImpactParticleConfig {
@@ -158,6 +168,7 @@ export interface SoftBallConfig {
 export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
+  cameraFollow: CameraFollowConfig;
   borderImpactRing: BorderImpactRingConfig;
   matchImpactParticles: MatchImpactParticleConfig;
   softBall: SoftBallConfig;
@@ -200,6 +211,14 @@ export interface MatchImpactParticleVisual {
   rotationDeg: number;
   opacity: number;
   color: string;
+}
+
+export interface CameraFollowVisualState {
+  offsetX: number;
+  offsetY: number;
+  targetX: number;
+  targetY: number;
+  isActive: boolean;
 }
 
 export interface LevelNotes {

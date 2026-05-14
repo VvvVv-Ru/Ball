@@ -3,6 +3,7 @@ import type {
   BallDefinition,
   BallSoftBallVisualMap,
   BallSoftBallVisualState,
+  CameraFollowVisualState,
   BorderDefinition,
   BorderImpactRingEffect,
   BorderSegment,
@@ -121,6 +122,16 @@ function createStageShakeStyle(stageShake: StageShakeState | null): CSSPropertie
   } as CSSProperties;
 }
 
+function createCameraFollowStyle(cameraFollow: CameraFollowVisualState | null): CSSProperties | undefined {
+  if (!cameraFollow) {
+    return undefined;
+  }
+
+  return {
+    transform: `translate3d(${cameraFollow.offsetX}px, ${cameraFollow.offsetY}px, 0)`,
+  };
+}
+
 function formatVector(vector: { x: number; y: number } | null | undefined) {
   if (!vector) {
     return "-";
@@ -133,12 +144,14 @@ export function Board(
   {
     gameState,
     stageShake = null,
+    cameraFollow = null,
     borderImpactRings = [],
     matchImpactParticles = [],
     softBallVisuals = {},
   }: {
     gameState: GameState;
     stageShake?: StageShakeState | null;
+    cameraFollow?: CameraFollowVisualState | null;
     borderImpactRings?: BorderImpactRingEffect[];
     matchImpactParticles?: MatchImpactParticleVisual[];
     softBallVisuals?: BallSoftBallVisualMap;
@@ -152,62 +165,64 @@ export function Board(
         aria-label="第3关玩法区骨架"
       >
         <div className="stage-viewport">
-          <div className="playfield-root" style={createPlayfieldStyle(gameState.playfield, gameState.viewport)}>
-            <div className="playfield-surface" style={{ background: gameState.playfield.fill }} />
+          <div className="playfield-camera-layer" style={createCameraFollowStyle(cameraFollow)}>
+            <div className="playfield-root" style={createPlayfieldStyle(gameState.playfield, gameState.viewport)}>
+              <div className="playfield-surface" style={{ background: gameState.playfield.fill }} />
 
-            <div
-              className="ball-queue-layer"
-              data-head-index={gameState.headIndex}
-              data-current-head-color={gameState.currentHeadColor ?? ""}
-            >
-              {gameState.ballQueue.balls.map((ball) => (
-                <div
-                  key={ball.id}
-                  className={`ball-queue-item${softBallVisuals[ball.id] ? " is-soft-ball" : ""}`}
-                  data-ball-id={ball.id}
-                  data-is-head={ball.order === gameState.headIndex}
-                  style={createBallStyle(ball, gameState.playfield, softBallVisuals[ball.id])}
-                />
-              ))}
-            </div>
+              <div
+                className="ball-queue-layer"
+                data-head-index={gameState.headIndex}
+                data-current-head-color={gameState.currentHeadColor ?? ""}
+              >
+                {gameState.ballQueue.balls.map((ball) => (
+                  <div
+                    key={ball.id}
+                    className={`ball-queue-item${softBallVisuals[ball.id] ? " is-soft-ball" : ""}`}
+                    data-ball-id={ball.id}
+                    data-is-head={ball.order === gameState.headIndex}
+                    style={createBallStyle(ball, gameState.playfield, softBallVisuals[ball.id])}
+                  />
+                ))}
+              </div>
 
-            <div className="border-impact-ring-layer" aria-hidden="true">
-              {borderImpactRings.map((effect) => (
-                <div
-                  key={effect.id}
-                  className="border-impact-ring"
-                  style={createBorderImpactRingStyle(effect, gameState.playfield)}
-                />
-              ))}
-            </div>
+              <div className="border-impact-ring-layer" aria-hidden="true">
+                {borderImpactRings.map((effect) => (
+                  <div
+                    key={effect.id}
+                    className="border-impact-ring"
+                    style={createBorderImpactRingStyle(effect, gameState.playfield)}
+                  />
+                ))}
+              </div>
 
-            <div className="match-impact-particle-layer" aria-hidden="true">
-              {matchImpactParticles.map((particle) => (
-                <div
-                  key={particle.id}
-                  className="match-impact-particle"
-                  style={createMatchImpactParticleStyle(particle, gameState.playfield)}
-                />
-              ))}
-            </div>
+              <div className="match-impact-particle-layer" aria-hidden="true">
+                {matchImpactParticles.map((particle) => (
+                  <div
+                    key={particle.id}
+                    className="match-impact-particle"
+                    style={createMatchImpactParticleStyle(particle, gameState.playfield)}
+                  />
+                ))}
+              </div>
 
-            <div className="playfield-borders">
-              {gameState.playfield.borders.map((border) => (
-                <div
-                  key={border.id}
-                  className="playfield-border"
-                  data-border-side={border.side}
-                  style={createBorderStyle(border, gameState.playfield)}
-                >
-                  {border.segments.filter((segment) => segment.active).map((segment) => (
-                    <div
-                      key={`${border.id}-${segment.start}-${segment.length}`}
-                      className="playfield-border-segment"
-                      style={createSegmentStyle(border, segment)}
-                    />
-                  ))}
-                </div>
-              ))}
+              <div className="playfield-borders">
+                {gameState.playfield.borders.map((border) => (
+                  <div
+                    key={border.id}
+                    className="playfield-border"
+                    data-border-side={border.side}
+                    style={createBorderStyle(border, gameState.playfield)}
+                  >
+                    {border.segments.filter((segment) => segment.active).map((segment) => (
+                      <div
+                        key={`${border.id}-${segment.start}-${segment.length}`}
+                        className="playfield-border-segment"
+                        style={createSegmentStyle(border, segment)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -260,6 +275,9 @@ export function Board(
             <span>pointerDistance: {gameState.input.pointer.currentDistance.toFixed(1)}</span>
             <span>thresholdReached: {String(gameState.input.pointer.hasReachedThreshold)}</span>
             <span>gestureTriggered: {String(gameState.input.pointer.hasTriggeredInCurrentGesture)}</span>
+            <span>cameraActive: {String(cameraFollow?.isActive ?? false)}</span>
+            <span>cameraOffset: {cameraFollow ? `${cameraFollow.offsetX.toFixed(1)}, ${cameraFollow.offsetY.toFixed(1)}` : "0.0, 0.0"}</span>
+            <span>cameraTarget: {cameraFollow ? `${cameraFollow.targetX.toFixed(1)}, ${cameraFollow.targetY.toFixed(1)}` : "0.0, 0.0"}</span>
           </div>
 
         </div>

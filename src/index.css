@@ -176,6 +176,12 @@ button {
   inset: 0;
 }
 
+.playfield-camera-layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
 .playfield-root,
 .playfield-surface,
 .border-impact-ring-layer,
