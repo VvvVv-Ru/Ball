@@ -8,6 +8,7 @@ import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeC
 import { UI_EVENT_NAMES } from "../types/uiContract";
 import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
+import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
 const MAX_ACTIVE_BORDER_RINGS = 6;
 
@@ -102,6 +103,7 @@ export function GamePlayView() {
   const ringCleanupTimeoutRef = useRef<number | null>(null);
   const lastShakeStartedAtRef = useRef<number>(-Infinity);
   const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
+  const softBallVisuals = useSoftBallVisuals(gameState);
 
   useEffect(() => {
     return () => {
@@ -255,6 +257,9 @@ export function GamePlayView() {
         triggerBorderImpactRing(borderImpactRingConfig, payload);
       }
     });
+    const unsubscribeSoftBall = gameUiEventBus.subscribe(UI_EVENT_NAMES.SOFT_BALL_TRIGGER, (payload) => {
+      setLatestUiEvent(`SOFT_BALL_TRIGGER:${payload.triggerKind}/${payload.ballId}`);
+    });
     const unsubscribeInputLock = gameUiEventBus.subscribe(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, (payload) => {
       setLatestUiEvent(`INPUT_LOCK_CHANGED:${String(payload.isInputLocked)}`);
     });
@@ -283,6 +288,7 @@ export function GamePlayView() {
       unsubscribeDelayedTriggered();
       unsubscribeSpecialBounce();
       unsubscribeBorderImpact();
+      unsubscribeSoftBall();
       unsubscribeInputLock();
       unsubscribeScore();
       unsubscribeCombo();
@@ -416,7 +422,7 @@ export function GamePlayView() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <Board gameState={gameState} stageShake={stageShake} borderImpactRings={borderImpactRings} />
+      <Board gameState={gameState} stageShake={stageShake} borderImpactRings={borderImpactRings} softBallVisuals={softBallVisuals} />
 
       <section
         className="ui-shell ui-shell--left"
@@ -449,6 +455,12 @@ export function GamePlayView() {
           <li>ringStrokeWidth: {gameState.tuningConfig.borderImpactRing.strokeWidth}</li>
           <li>ringDurationMs: {gameState.tuningConfig.borderImpactRing.durationMs}</li>
           <li>activeImpactRings: {borderImpactRings.length}</li>
+          <li>softBallEnabled: {String(gameState.tuningConfig.softBall.enabled)}</li>
+          <li>softBallHeadOnly: {String(gameState.tuningConfig.softBall.headOnly)}</li>
+          <li>softBallMaxSquash: {gameState.tuningConfig.softBall.maxSquash}</li>
+          <li>softBallMaxStretch: {gameState.tuningConfig.softBall.maxStretch}</li>
+          <li>softBallReboundMs: {gameState.tuningConfig.softBall.reboundDurationMs}</li>
+          <li>softBallSecondaryMs: {gameState.tuningConfig.softBall.secondaryBounceDurationMs}</li>
           <li>delayedBorderState: {gameState.rule.delayedBorderState}</li>
           <li>pendingBorderId: {gameState.rule.pendingBorderId ?? "-"}</li>
           <li>specialBounceTriggered: {String(gameState.rule.specialBounceTriggered)}</li>

@@ -206,6 +206,12 @@ button {
 
 .ball-queue-item {
   border-radius: 50%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.ball-queue-item.is-soft-ball {
+  transform: rotate(var(--soft-ball-rotation, 0deg)) scale(var(--soft-ball-scale-x, 1), var(--soft-ball-scale-y, 1));
 }
 
 .ball-queue-item[data-is-head="true"] {

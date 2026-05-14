@@ -18,6 +18,8 @@ export type BorderImpactKind = "match" | "mismatch" | "special-bounce";
 
 export type ShakeIntensity = "light" | "medium";
 
+export type SoftBallTriggerKind = "launch" | "redirect" | "border-impact" | "special-bounce";
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -116,10 +118,30 @@ export interface BorderImpactRingConfig {
   alphaFade: boolean;
 }
 
+export interface SoftBallConfig {
+  enabled: boolean;
+  headOnly: boolean;
+  maxSquash: number;
+  maxStretch: number;
+  reboundDurationMs: number;
+  overshoot: number;
+  jellyWobbleStrength: number;
+  secondaryBounceDurationMs: number;
+  minTriggerSpeed: number;
+  launchIntensity: number;
+  redirectIntensity: number;
+  impactIntensity: number;
+  specialBounceIntensity: number;
+  followerScale: number;
+  wobbleCycles: number;
+  wobbleRotationDeg: number;
+}
+
 export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
   borderImpactRing: BorderImpactRingConfig;
+  softBall: SoftBallConfig;
 }
 
 export interface BorderImpactRingEffect {
@@ -138,6 +160,14 @@ export interface BorderImpactRingEffect {
 export interface LevelNotes {
   placement: string;
 }
+
+export interface BallSoftBallVisualState {
+  scaleX: number;
+  scaleY: number;
+  rotationDeg: number;
+}
+
+export type BallSoftBallVisualMap = Record<string, BallSoftBallVisualState>;
 
 export interface ViewportConfig {
   width: number;

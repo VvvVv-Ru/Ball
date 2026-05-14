@@ -1,4 +1,4 @@
-import type { BallColorKey, BorderImpactKind, GameState, InputDirection, PointerInputSource, Scene, ShakeIntensity, Vector2 } from "./game";
+import type { BallColorKey, BorderImpactKind, GameState, InputDirection, PointerInputSource, Scene, ShakeIntensity, SoftBallTriggerKind, Vector2 } from "./game";
 
 export type LevelState = "idle" | GameState["status"] | "playing" | "failed";
 
@@ -22,6 +22,7 @@ export const UI_EVENT_NAMES = {
   DELAYED_BORDER_TRIGGERED: "DELAYED_BORDER_TRIGGERED",
   SPECIAL_BOUNCE_RESOLVED: "SPECIAL_BOUNCE_RESOLVED",
   ON_BORDER_IMPACT: "ON_BORDER_IMPACT",
+  SOFT_BALL_TRIGGER: "SOFT_BALL_TRIGGER",
   ON_COLLISION_MATCH: "ON_COLLISION_MATCH",
   ON_COLLISION_MISMATCH: "ON_COLLISION_MISMATCH",
   INPUT_AIM_UPDATE: "INPUT_AIM_UPDATE",
@@ -85,6 +86,16 @@ export interface BorderImpactPayload {
   occurredAt: number;
 }
 
+export interface SoftBallTriggerPayload {
+  ballId: string;
+  triggerKind: SoftBallTriggerKind;
+  direction: Vector2;
+  normal: Vector2 | null;
+  speed: number;
+  occurredAt: number;
+  isHead: boolean;
+}
+
 export interface CollisionMatchPayload {
   borderId: string;
   color: BallColorKey;
@@ -130,6 +141,7 @@ export interface UiEventPayloadMap {
   DELAYED_BORDER_TRIGGERED: DelayedBorderTriggeredPayload;
   SPECIAL_BOUNCE_RESOLVED: SpecialBounceResolvedPayload;
   ON_BORDER_IMPACT: BorderImpactPayload;
+  SOFT_BALL_TRIGGER: SoftBallTriggerPayload;
   ON_COLLISION_MATCH: CollisionMatchPayload;
   ON_COLLISION_MISMATCH: CollisionMismatchPayload;
   INPUT_AIM_UPDATE: InputAimUpdatePayload;

@@ -25,7 +25,75 @@ import type {
   InputDirection,
   PointerGesturePayload,
   Scene,
+  Vector2,
 } from "../types/game";
+
+const IMPACT_NORMAL_BY_SIDE: Record<"top" | "right" | "bottom" | "left", Vector2> = {
+  top: { x: 0, y: 1 },
+  right: { x: -1, y: 0 },
+  bottom: { x: 0, y: -1 },
+  left: { x: 1, y: 0 },
+};
+
+function areVectorsEffectivelySame(left: Vector2 | null, right: Vector2 | null) {
+  if (!left || !right) {
+    return false;
+  }
+
+  return Math.abs(left.x - right.x) <= 0.0001 && Math.abs(left.y - right.y) <= 0.0001;
+}
+
+function emitSoftBallLaunchTrigger(previousState: NonNullable<GameStoreState["gameState"]>, nextState: NonNullable<GameStoreState["gameState"]>, occurredAt: number) {
+  const config = nextState.tuningConfig.softBall;
+  const headBall = nextState.ballQueue.balls[nextState.headIndex];
+
+  if (!config.enabled || !headBall || !nextState.motion.currentVector || nextState.motion.currentSpeed < config.minTriggerSpeed) {
+    return;
+  }
+
+  const isLaunch = !previousState.motion.isLaunched && nextState.motion.isLaunched;
+  const isRedirect = previousState.motion.isLaunched
+    && nextState.motion.isLaunched
+    && !areVectorsEffectivelySame(previousState.motion.currentVector, nextState.motion.currentVector);
+
+  if (!isLaunch && !isRedirect) {
+    return;
+  }
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.SOFT_BALL_TRIGGER, {
+    ballId: headBall.id,
+    triggerKind: isLaunch ? "launch" : "redirect",
+    direction: { ...nextState.motion.currentVector },
+    normal: null,
+    speed: nextState.motion.currentSpeed,
+    occurredAt,
+    isHead: headBall.order === nextState.headIndex,
+  });
+}
+
+function emitSoftBallImpactTrigger(
+  gameState: NonNullable<GameStoreState["gameState"]>,
+  borderImpact: NonNullable<ReturnType<typeof advanceHeadMotion>["borderImpact"]>,
+  collision: ReturnType<typeof advanceHeadMotion>["collision"],
+  hasSpecialBounce: boolean,
+) {
+  const config = gameState.tuningConfig.softBall;
+  const headBall = gameState.ballQueue.balls[gameState.headIndex];
+
+  if (!config.enabled || !headBall || gameState.motion.currentSpeed < config.minTriggerSpeed) {
+    return;
+  }
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.SOFT_BALL_TRIGGER, {
+    ballId: headBall.id,
+    triggerKind: hasSpecialBounce ? "special-bounce" : "border-impact",
+    direction: { ...(collision?.afterVector ?? collision?.beforeVector ?? gameState.motion.currentVector ?? IMPACT_NORMAL_BY_SIDE[borderImpact.side]) },
+    normal: { ...IMPACT_NORMAL_BY_SIDE[borderImpact.side] },
+    speed: gameState.motion.currentSpeed,
+    occurredAt: borderImpact.occurredAt,
+    isHead: headBall.order === gameState.headIndex,
+  });
+}
 
 function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: GameStoreState["gameState"]) {
   const contractState = selectUiStateContract({
@@ -247,6 +315,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         source: "keyboard",
         occurredAt,
       });
+      emitSoftBallLaunchTrigger(state.gameState, nextGameState, occurredAt);
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
 
       return {
@@ -268,6 +337,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       if (borderImpact) {
         gameUiEventBus.emit(UI_EVENT_NAMES.ON_BORDER_IMPACT, borderImpact);
+        emitSoftBallImpactTrigger(state.gameState, borderImpact, collision, Boolean(specialBounce));
       }
 
       if (collision?.type === "mismatch" && collision.borderColor && collision.headColor) {
@@ -408,6 +478,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           source: payload.pointerType,
           occurredAt: payload.at,
         });
+        emitSoftBallLaunchTrigger(state.gameState, nextGameState, payload.at);
       }
 
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);

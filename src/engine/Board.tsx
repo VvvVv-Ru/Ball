@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { BallDefinition, BorderDefinition, BorderImpactRingEffect, BorderSegment, GameState, PlayfieldConfig, Rect, ViewportConfig } from "../types/game";
+import type { BallDefinition, BallSoftBallVisualMap, BallSoftBallVisualState, BorderDefinition, BorderImpactRingEffect, BorderSegment, GameState, PlayfieldConfig, Rect, ViewportConfig } from "../types/game";
 
 interface StageShakeState {
   active: boolean;
@@ -55,14 +55,17 @@ function createSegmentStyle(border: BorderDefinition, segment: BorderSegment): C
   };
 }
 
-function createBallStyle(ball: BallDefinition, playfield: PlayfieldConfig): CSSProperties {
+function createBallStyle(ball: BallDefinition, playfield: PlayfieldConfig, softBallVisual?: BallSoftBallVisualState): CSSProperties {
   return {
     left: toLocalWidth(ball.position.x - playfield.rect.x - ball.radius, playfield.rect),
     top: toLocalHeight(ball.position.y - playfield.rect.y - ball.radius, playfield.rect),
     width: toLocalWidth(ball.diameter, playfield.rect),
     height: toLocalHeight(ball.diameter, playfield.rect),
     background: ball.colorHex,
-  };
+    "--soft-ball-scale-x": `${softBallVisual?.scaleX ?? 1}`,
+    "--soft-ball-scale-y": `${softBallVisual?.scaleY ?? 1}`,
+    "--soft-ball-rotation": `${softBallVisual?.rotationDeg ?? 0}deg`,
+  } as CSSProperties;
 }
 
 function createBorderImpactRingStyle(effect: BorderImpactRingEffect, playfield: PlayfieldConfig): CSSProperties {
@@ -103,7 +106,17 @@ function formatVector(vector: { x: number; y: number } | null | undefined) {
 }
 
 export function Board(
-  { gameState, stageShake = null, borderImpactRings = [] }: { gameState: GameState; stageShake?: StageShakeState | null; borderImpactRings?: BorderImpactRingEffect[] },
+  {
+    gameState,
+    stageShake = null,
+    borderImpactRings = [],
+    softBallVisuals = {},
+  }: {
+    gameState: GameState;
+    stageShake?: StageShakeState | null;
+    borderImpactRings?: BorderImpactRingEffect[];
+    softBallVisuals?: BallSoftBallVisualMap;
+  },
 ) {
   return (
     <div className="stage-shell">
@@ -124,10 +137,10 @@ export function Board(
               {gameState.ballQueue.balls.map((ball) => (
                 <div
                   key={ball.id}
-                  className="ball-queue-item"
+                  className={`ball-queue-item${softBallVisuals[ball.id] ? " is-soft-ball" : ""}`}
                   data-ball-id={ball.id}
                   data-is-head={ball.order === gameState.headIndex}
-                  style={createBallStyle(ball, gameState.playfield)}
+                  style={createBallStyle(ball, gameState.playfield, softBallVisuals[ball.id])}
                 />
               ))}
             </div>
