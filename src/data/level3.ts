@@ -40,6 +40,21 @@ const LEVEL3_BORDER_IMPACT_RING = {
   easing: "cubic-bezier(0.22, 1, 0.36, 1)",
   alphaFade: true,
 } as const;
+const LEVEL3_MATCH_IMPACT_PARTICLES = {
+  enabled: true,
+  particleCount: 18,
+  initialSpeedMin: 460,
+  initialSpeedMax: 2500,
+  scatterAngleDeg: 260,
+  lifetimeMs: 420,
+  sizeMin: 10,
+  sizeMax: 24,
+  opacityCurve: "ease-out",
+  useGravity: false,
+  gravity: 0,
+  useDamping: true,
+  damping: 8.6,
+} as const;
 const LEVEL3_SOFT_BALL = {
   enabled: true,
   headOnly: true,
@@ -220,6 +235,21 @@ export const level3Config: LevelConfig = {
         easing: LEVEL3_BORDER_IMPACT_RING.easing,
         alphaFade: LEVEL3_BORDER_IMPACT_RING.alphaFade,
       },
+      matchImpactParticles: {
+        enabled: LEVEL3_MATCH_IMPACT_PARTICLES.enabled,
+        particleCount: LEVEL3_MATCH_IMPACT_PARTICLES.particleCount,
+        initialSpeedMin: LEVEL3_MATCH_IMPACT_PARTICLES.initialSpeedMin,
+        initialSpeedMax: LEVEL3_MATCH_IMPACT_PARTICLES.initialSpeedMax,
+        scatterAngleDeg: LEVEL3_MATCH_IMPACT_PARTICLES.scatterAngleDeg,
+        lifetimeMs: LEVEL3_MATCH_IMPACT_PARTICLES.lifetimeMs,
+        sizeMin: LEVEL3_MATCH_IMPACT_PARTICLES.sizeMin,
+        sizeMax: LEVEL3_MATCH_IMPACT_PARTICLES.sizeMax,
+        opacityCurve: LEVEL3_MATCH_IMPACT_PARTICLES.opacityCurve,
+        useGravity: LEVEL3_MATCH_IMPACT_PARTICLES.useGravity,
+        gravity: LEVEL3_MATCH_IMPACT_PARTICLES.gravity,
+        useDamping: LEVEL3_MATCH_IMPACT_PARTICLES.useDamping,
+        damping: LEVEL3_MATCH_IMPACT_PARTICLES.damping,
+      },
       softBall: {
         enabled: LEVEL3_SOFT_BALL.enabled,
         headOnly: LEVEL3_SOFT_BALL.headOnly,
@@ -257,6 +287,7 @@ export const LEVEL3_CONSTANTS = {
   swipeLaunch: LEVEL3_SWIPE_LAUNCH_TUNING,
   borderImpactShake: LEVEL3_BORDER_IMPACT_SHAKE,
   borderImpactRing: LEVEL3_BORDER_IMPACT_RING,
+  matchImpactParticles: LEVEL3_MATCH_IMPACT_PARTICLES,
   softBall: LEVEL3_SOFT_BALL,
   colorPool: LEVEL3_COLOR_POOL,
 } as const;

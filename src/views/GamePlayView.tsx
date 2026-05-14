@@ -8,6 +8,7 @@ import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeC
 import { UI_EVENT_NAMES } from "../types/uiContract";
 import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
+import { useMatchImpactParticles } from "./useMatchImpactParticles";
 import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
 const MAX_ACTIVE_BORDER_RINGS = 6;
@@ -103,6 +104,7 @@ export function GamePlayView() {
   const ringCleanupTimeoutRef = useRef<number | null>(null);
   const lastShakeStartedAtRef = useRef<number>(-Infinity);
   const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
+  const matchImpactParticles = useMatchImpactParticles(gameState);
   const softBallVisuals = useSoftBallVisuals(gameState);
 
   useEffect(() => {
@@ -422,7 +424,13 @@ export function GamePlayView() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <Board gameState={gameState} stageShake={stageShake} borderImpactRings={borderImpactRings} softBallVisuals={softBallVisuals} />
+      <Board
+        gameState={gameState}
+        stageShake={stageShake}
+        borderImpactRings={borderImpactRings}
+        matchImpactParticles={matchImpactParticles}
+        softBallVisuals={softBallVisuals}
+      />
 
       <section
         className="ui-shell ui-shell--left"
@@ -455,6 +463,10 @@ export function GamePlayView() {
           <li>ringStrokeWidth: {gameState.tuningConfig.borderImpactRing.strokeWidth}</li>
           <li>ringDurationMs: {gameState.tuningConfig.borderImpactRing.durationMs}</li>
           <li>activeImpactRings: {borderImpactRings.length}</li>
+          <li>matchParticlesEnabled: {String(gameState.tuningConfig.matchImpactParticles.enabled)}</li>
+          <li>matchParticleCount: {gameState.tuningConfig.matchImpactParticles.particleCount}</li>
+          <li>matchParticleLifetimeMs: {gameState.tuningConfig.matchImpactParticles.lifetimeMs}</li>
+          <li>activeMatchParticles: {matchImpactParticles.length}</li>
           <li>softBallEnabled: {String(gameState.tuningConfig.softBall.enabled)}</li>
           <li>softBallHeadOnly: {String(gameState.tuningConfig.softBall.headOnly)}</li>
           <li>softBallMaxSquash: {gameState.tuningConfig.softBall.maxSquash}</li>

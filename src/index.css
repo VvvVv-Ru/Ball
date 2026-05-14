@@ -180,6 +180,8 @@ button {
 .playfield-surface,
 .border-impact-ring-layer,
 .border-impact-ring,
+.match-impact-particle-layer,
+.match-impact-particle,
 .playfield-borders,
 .playfield-border,
 .playfield-border-segment,
@@ -202,6 +204,18 @@ button {
   inset: 0;
   pointer-events: none;
   z-index: 2;
+}
+
+.match-impact-particle-layer {
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.match-impact-particle {
+  will-change: transform, opacity;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.12);
 }
 
 .ball-queue-item {

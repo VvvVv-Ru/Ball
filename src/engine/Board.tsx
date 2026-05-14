@@ -1,5 +1,17 @@
 import type { CSSProperties } from "react";
-import type { BallDefinition, BallSoftBallVisualMap, BallSoftBallVisualState, BorderDefinition, BorderImpactRingEffect, BorderSegment, GameState, PlayfieldConfig, Rect, ViewportConfig } from "../types/game";
+import type {
+  BallDefinition,
+  BallSoftBallVisualMap,
+  BallSoftBallVisualState,
+  BorderDefinition,
+  BorderImpactRingEffect,
+  BorderSegment,
+  GameState,
+  MatchImpactParticleVisual,
+  PlayfieldConfig,
+  Rect,
+  ViewportConfig,
+} from "../types/game";
 
 interface StageShakeState {
   active: boolean;
@@ -85,6 +97,18 @@ function createBorderImpactRingStyle(effect: BorderImpactRingEffect, playfield: 
   } as CSSProperties;
 }
 
+function createMatchImpactParticleStyle(particle: MatchImpactParticleVisual, playfield: PlayfieldConfig): CSSProperties {
+  return {
+    left: toLocalWidth(particle.position.x - playfield.rect.x, playfield.rect),
+    top: toLocalHeight(particle.position.y - playfield.rect.y, playfield.rect),
+    width: toLocalWidth(particle.size, playfield.rect),
+    height: toLocalHeight(particle.size, playfield.rect),
+    background: particle.color,
+    opacity: particle.opacity,
+    transform: `translate(-50%, -50%) rotate(${particle.rotationDeg}deg)`,
+  } satisfies CSSProperties;
+}
+
 function createStageShakeStyle(stageShake: StageShakeState | null): CSSProperties | undefined {
   if (!stageShake?.active) {
     return undefined;
@@ -110,11 +134,13 @@ export function Board(
     gameState,
     stageShake = null,
     borderImpactRings = [],
+    matchImpactParticles = [],
     softBallVisuals = {},
   }: {
     gameState: GameState;
     stageShake?: StageShakeState | null;
     borderImpactRings?: BorderImpactRingEffect[];
+    matchImpactParticles?: MatchImpactParticleVisual[];
     softBallVisuals?: BallSoftBallVisualMap;
   },
 ) {
@@ -151,6 +177,16 @@ export function Board(
                   key={effect.id}
                   className="border-impact-ring"
                   style={createBorderImpactRingStyle(effect, gameState.playfield)}
+                />
+              ))}
+            </div>
+
+            <div className="match-impact-particle-layer" aria-hidden="true">
+              {matchImpactParticles.map((particle) => (
+                <div
+                  key={particle.id}
+                  className="match-impact-particle"
+                  style={createMatchImpactParticleStyle(particle, gameState.playfield)}
                 />
               ))}
             </div>

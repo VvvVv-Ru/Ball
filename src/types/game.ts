@@ -118,6 +118,24 @@ export interface BorderImpactRingConfig {
   alphaFade: boolean;
 }
 
+export type MatchImpactParticleOpacityCurve = "linear" | "ease-out";
+
+export interface MatchImpactParticleConfig {
+  enabled: boolean;
+  particleCount: number;
+  initialSpeedMin: number;
+  initialSpeedMax: number;
+  scatterAngleDeg: number;
+  lifetimeMs: number;
+  sizeMin: number;
+  sizeMax: number;
+  opacityCurve: MatchImpactParticleOpacityCurve;
+  useGravity: boolean;
+  gravity: number;
+  useDamping: boolean;
+  damping: number;
+}
+
 export interface SoftBallConfig {
   enabled: boolean;
   headOnly: boolean;
@@ -141,6 +159,7 @@ export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
   borderImpactRing: BorderImpactRingConfig;
+  matchImpactParticles: MatchImpactParticleConfig;
   softBall: SoftBallConfig;
 }
 
@@ -155,6 +174,32 @@ export interface BorderImpactRingEffect {
   endScale: number;
   easing: string;
   alphaFade: boolean;
+}
+
+export interface MatchImpactParticleSeed {
+  id: string;
+  initialVelocity: Vector2;
+  size: number;
+  rotationDeg: number;
+  spinDegPerSecond: number;
+}
+
+export interface MatchImpactParticleEffect {
+  id: string;
+  origin: Vector2;
+  color: string;
+  startedAt: number;
+  lifetimeMs: number;
+  particles: MatchImpactParticleSeed[];
+}
+
+export interface MatchImpactParticleVisual {
+  id: string;
+  position: Vector2;
+  size: number;
+  rotationDeg: number;
+  opacity: number;
+  color: string;
 }
 
 export interface LevelNotes {
