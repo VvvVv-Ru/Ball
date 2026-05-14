@@ -1,6 +1,6 @@
-import type { BallColorKey, GameState, InputDirection, PointerInputSource, Scene, Vector2 } from "./game";
+import type { BallColorKey, BorderImpactKind, GameState, InputDirection, PointerInputSource, Scene, ShakeIntensity, Vector2 } from "./game";
 
-export type LevelState = "idle" | GameState["status"] | "playing" | "cleared" | "failed";
+export type LevelState = "idle" | GameState["status"] | "playing" | "failed";
 
 export interface UiStateContract {
   score: number;
@@ -15,7 +15,13 @@ export interface UiStateContract {
 
 export const UI_EVENT_NAMES = {
   UI_UPDATE_SCORE: "UI_UPDATE_SCORE",
+  COMBO_CHANGED: "COMBO_CHANGED",
   GAME_STATE_CHANGED: "GAME_STATE_CHANGED",
+  INPUT_LOCK_CHANGED: "INPUT_LOCK_CHANGED",
+  DELAYED_BORDER_ENTERED: "DELAYED_BORDER_ENTERED",
+  DELAYED_BORDER_TRIGGERED: "DELAYED_BORDER_TRIGGERED",
+  SPECIAL_BOUNCE_RESOLVED: "SPECIAL_BOUNCE_RESOLVED",
+  ON_BORDER_IMPACT: "ON_BORDER_IMPACT",
   ON_COLLISION_MATCH: "ON_COLLISION_MATCH",
   ON_COLLISION_MISMATCH: "ON_COLLISION_MISMATCH",
   INPUT_AIM_UPDATE: "INPUT_AIM_UPDATE",
@@ -39,6 +45,44 @@ export interface GameStateChangedPayload {
   currentHeadColor: BallColorKey | null;
   remainingBalls: number;
   remainingTargets: number;
+}
+
+export interface ComboChangedPayload {
+  combo: number;
+  previousCombo: number;
+  reason: "match" | "mismatch" | "placeholder";
+}
+
+export interface InputLockChangedPayload {
+  isInputLocked: boolean;
+  reason: "delayed-border" | "special-bounce" | "manual" | "placeholder";
+}
+
+export interface DelayedBorderEnteredPayload {
+  borderId: string;
+  side: "top" | "right" | "bottom" | "left";
+  color: BallColorKey;
+}
+
+export interface DelayedBorderTriggeredPayload {
+  borderId: string;
+  side: "top" | "right" | "bottom" | "left";
+}
+
+export interface SpecialBounceResolvedPayload {
+  borderId: string;
+  remainingTargets: number;
+  isInputLocked: boolean;
+}
+
+export interface BorderImpactPayload {
+  borderId: string;
+  side: "top" | "right" | "bottom" | "left";
+  impactKind: BorderImpactKind;
+  shakeIntensity: ShakeIntensity;
+  center: Vector2;
+  ballRadius: number;
+  occurredAt: number;
 }
 
 export interface CollisionMatchPayload {
@@ -69,16 +113,23 @@ export interface HpChangedPayload {
 
 export interface LevelClearPayload {
   levelId: string;
+  reason: "all_targets_cleared_and_no_balls";
 }
 
 export interface LevelFailPayload {
   levelId: string;
-  reason: "out-of-bounds" | "hp-zero" | "placeholder";
+  reason: "out_of_bounds" | "out-of-bounds" | "hp-zero" | "placeholder";
 }
 
 export interface UiEventPayloadMap {
   UI_UPDATE_SCORE: UiUpdateScorePayload;
+  COMBO_CHANGED: ComboChangedPayload;
   GAME_STATE_CHANGED: GameStateChangedPayload;
+  INPUT_LOCK_CHANGED: InputLockChangedPayload;
+  DELAYED_BORDER_ENTERED: DelayedBorderEnteredPayload;
+  DELAYED_BORDER_TRIGGERED: DelayedBorderTriggeredPayload;
+  SPECIAL_BOUNCE_RESOLVED: SpecialBounceResolvedPayload;
+  ON_BORDER_IMPACT: BorderImpactPayload;
   ON_COLLISION_MATCH: CollisionMatchPayload;
   ON_COLLISION_MISMATCH: CollisionMismatchPayload;
   INPUT_AIM_UPDATE: InputAimUpdatePayload;

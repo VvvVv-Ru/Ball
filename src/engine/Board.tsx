@@ -1,5 +1,12 @@
 import type { CSSProperties } from "react";
-import type { BallDefinition, BorderDefinition, BorderSegment, GameState, PlayfieldConfig, Rect, ViewportConfig } from "../types/game";
+import type { BallDefinition, BorderDefinition, BorderImpactRingEffect, BorderSegment, GameState, PlayfieldConfig, Rect, ViewportConfig } from "../types/game";
+
+interface StageShakeState {
+  active: boolean;
+  offsetX: number;
+  offsetY: number;
+  durationMs: number;
+}
 
 function toViewportWidth(value: number, viewport: ViewportConfig) {
   return `${(value / viewport.width) * 100}%`;
@@ -58,10 +65,45 @@ function createBallStyle(ball: BallDefinition, playfield: PlayfieldConfig): CSSP
   };
 }
 
-export function Board({ gameState }: { gameState: GameState }) {
+function createBorderImpactRingStyle(effect: BorderImpactRingEffect, playfield: PlayfieldConfig): CSSProperties {
+  const diameter = effect.ballRadius * 2;
+
+  return {
+    left: toLocalWidth(effect.center.x - playfield.rect.x, playfield.rect),
+    top: toLocalHeight(effect.center.y - playfield.rect.y, playfield.rect),
+    width: toLocalWidth(diameter, playfield.rect),
+    height: toLocalHeight(diameter, playfield.rect),
+    "--impact-ring-stroke-width": `${effect.strokeWidth}px`,
+    "--impact-ring-duration": `${effect.durationMs}ms`,
+    "--impact-ring-start-scale": `${effect.startScale}`,
+    "--impact-ring-end-scale": `${effect.endScale}`,
+    "--impact-ring-easing": effect.easing,
+    "--impact-ring-final-opacity": effect.alphaFade ? "0" : "1",
+  } as CSSProperties;
+}
+
+function createStageShakeStyle(stageShake: StageShakeState | null): CSSProperties | undefined {
+  if (!stageShake?.active) {
+    return undefined;
+  }
+
+  return {
+    "--stage-shake-x": `${stageShake.offsetX}px`,
+    "--stage-shake-y": `${stageShake.offsetY}px`,
+    "--stage-shake-duration": `${stageShake.durationMs}ms`,
+  } as CSSProperties;
+}
+
+export function Board(
+  { gameState, stageShake = null, borderImpactRings = [] }: { gameState: GameState; stageShake?: StageShakeState | null; borderImpactRings?: BorderImpactRingEffect[] },
+) {
   return (
     <div className="stage-shell">
-      <section className="stage-frame" aria-label="第3关玩法区骨架">
+      <section
+        className={`stage-frame${stageShake?.active ? " is-stage-shaking" : ""}`}
+        style={createStageShakeStyle(stageShake)}
+        aria-label="第3关玩法区骨架"
+      >
         <div className="stage-viewport">
           <div className="playfield-root" style={createPlayfieldStyle(gameState.playfield, gameState.viewport)}>
             <div className="playfield-surface" style={{ background: gameState.playfield.fill }} />
@@ -78,6 +120,16 @@ export function Board({ gameState }: { gameState: GameState }) {
                   data-ball-id={ball.id}
                   data-is-head={ball.order === gameState.headIndex}
                   style={createBallStyle(ball, gameState.playfield)}
+                />
+              ))}
+            </div>
+
+            <div className="border-impact-ring-layer" aria-hidden="true">
+              {borderImpactRings.map((effect) => (
+                <div
+                  key={effect.id}
+                  className="border-impact-ring"
+                  style={createBorderImpactRingStyle(effect, gameState.playfield)}
                 />
               ))}
             </div>
@@ -103,6 +155,13 @@ export function Board({ gameState }: { gameState: GameState }) {
           </div>
 
           <div className="board-debug-panel" aria-label="Board debug info">
+            <span>score: {gameState.progress.score}</span>
+            <span>combo: {gameState.progress.combo}</span>
+            <span>hp: {gameState.hp}</span>
+            <span>lastScoreDelta: {gameState.progress.lastScoreDelta}</span>
+            <span>levelState: {gameState.status === "ready" ? "playing" : gameState.status}</span>
+            <span>clearReason: {gameState.clearReason ?? "-"}</span>
+            <span>failReason: {gameState.failReason ?? "-"}</span>
             <span>isLaunched: {String(gameState.motion.isLaunched)}</span>
             <span>currentDirection: {gameState.motion.currentDirection ?? "-"}</span>
             <span>currentSpeed: {gameState.motion.currentSpeed}</span>
@@ -119,7 +178,10 @@ export function Board({ gameState }: { gameState: GameState }) {
             </span>
             <span>headIndex: {gameState.headIndex}</span>
             <span>headColor: {gameState.currentHeadColor ?? "-"}</span>
+            <span>delayedBorderState: {gameState.rule.delayedBorderState}</span>
             <span>pendingBorderId: {gameState.rule.pendingBorderId ?? "-"}</span>
+            <span>specialBounceTriggered: {String(gameState.rule.specialBounceTriggered)}</span>
+            <span>remainingBorders: {gameState.playfield.borders.filter((border) => border.active).length}</span>
             <span>removedBallId: {gameState.rule.lastRemovedBallId ?? "-"}</span>
             <span>removedBallOrder: {gameState.rule.lastRemovedBallOrder ?? "-"}</span>
             <span>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</span>

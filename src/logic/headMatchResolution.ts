@@ -1,4 +1,5 @@
 import type { GameState, Vector2 } from "../types/game";
+import { resolveNoNextBallBorderClear } from "./delayedBorderResolution";
 
 function getLinkDistance(gameState: GameState, leaderIndex: number, followerIndex: number) {
   const leader = gameState.ballQueue.balls[leaderIndex];
@@ -93,7 +94,7 @@ function samplePointOnPath(path: Vector2[], distance: number) {
   return { ...path[path.length - 1] };
 }
 
-export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vector2, borderId: string) {
+export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vector2, borderId: string): GameState {
   const removedBall = gameState.ballQueue.balls[gameState.headIndex] ?? null;
   const remainingBalls = gameState.ballQueue.balls.slice(gameState.headIndex + 1).map((ball, index) => ({
     ...ball,
@@ -110,8 +111,9 @@ export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vec
     position: samplePointOnPath(nextPath, queueOffsets[index] ?? 0),
   }));
   const nextHead = positionedBalls[0] ?? null;
+  const hasNextHead = Boolean(nextHead);
 
-  return {
+  const nextGameState: GameState = {
     ...gameState,
     ballQueue: {
       ...gameState.ballQueue,
@@ -120,19 +122,25 @@ export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vec
     },
     headIndex: 0,
     currentHeadColor: nextHead?.colorKey ?? null,
+    isInputLocked: hasNextHead,
     motion: {
       ...gameState.motion,
-      isLaunched: false,
-      currentSpeed: 0,
+      isLaunched: hasNextHead ? gameState.motion.isLaunched : false,
+      currentSpeed: hasNextHead ? gameState.motion.currentSpeed : 0,
       headPath: nextPath,
     },
     rule: {
       ...gameState.rule,
+      delayedBorderState: hasNextHead ? "pending" : "idle",
       pendingBorderId: borderId,
       pendingBorderSide: gameState.collision.lastCollisionSide,
       pendingBorderColor: gameState.collision.lastCollisionBorderColor,
+      specialBounceTriggered: false,
+      lastSpecialBounceBorderId: null,
       lastRemovedBallId: removedBall?.id ?? null,
       lastRemovedBallOrder: removedBall?.order ?? null,
     },
   };
+
+  return hasNextHead ? nextGameState : resolveNoNextBallBorderClear(nextGameState);
 }

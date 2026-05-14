@@ -19,6 +19,28 @@ const LEVEL3_POINTER_TRIGGER_DISTANCE = {
 const LEVEL3_POINTER_HOLD_STILL_MAX_MS = 300;
 const LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA = 6;
 const LEVEL3_REDIRECT_COOLDOWN_MS = 80;
+const LEVEL3_BORDER_IMPACT_SHAKE = {
+  enabled: true,
+  light: {
+    amplitude: 10,
+    durationMs: 120,
+    cooldownMs: 80,
+  },
+  medium: {
+    amplitude: 16,
+    durationMs: 160,
+    cooldownMs: 100,
+  },
+} as const;
+const LEVEL3_BORDER_IMPACT_RING = {
+  enabled: true,
+  strokeWidth: 0.4,
+  startScale: 0.92,
+  endScale: 5,
+  durationMs: 660,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+  alphaFade: true,
+} as const;
 const LEVEL3_PLAYFIELD_CENTER: Vector2 = {
   x: LEVEL3_VIEWPORT.width / 2,
   y: LEVEL3_VIEWPORT.height / 2 + 120,
@@ -162,6 +184,22 @@ export const level3Config: LevelConfig = {
       directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
       redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
     },
+    tuning: {
+      borderImpactShake: {
+        enabled: LEVEL3_BORDER_IMPACT_SHAKE.enabled,
+        light: { ...LEVEL3_BORDER_IMPACT_SHAKE.light },
+        medium: { ...LEVEL3_BORDER_IMPACT_SHAKE.medium },
+      },
+      borderImpactRing: {
+        enabled: LEVEL3_BORDER_IMPACT_RING.enabled,
+        strokeWidth: LEVEL3_BORDER_IMPACT_RING.strokeWidth,
+        startScale: LEVEL3_BORDER_IMPACT_RING.startScale,
+        endScale: LEVEL3_BORDER_IMPACT_RING.endScale,
+        durationMs: LEVEL3_BORDER_IMPACT_RING.durationMs,
+        easing: LEVEL3_BORDER_IMPACT_RING.easing,
+        alphaFade: LEVEL3_BORDER_IMPACT_RING.alphaFade,
+      },
+    },
   },
   notes: {
     placement: "玩法区以舞台中心为基准，Y 轴下移 120px，保持居中略偏下。",
@@ -179,5 +217,7 @@ export const LEVEL3_CONSTANTS = {
   pointerHoldStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
   directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
   redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
+  borderImpactShake: LEVEL3_BORDER_IMPACT_SHAKE,
+  borderImpactRing: LEVEL3_BORDER_IMPACT_RING,
   colorPool: LEVEL3_COLOR_POOL,
 } as const;

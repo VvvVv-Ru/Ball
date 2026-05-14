@@ -14,6 +14,10 @@ export type HeadBallIndex = number;
 
 export type CollisionType = "match" | "mismatch";
 
+export type BorderImpactKind = "match" | "mismatch" | "special-bounce";
+
+export type ShakeIntensity = "light" | "medium";
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -75,6 +79,7 @@ export interface LevelGameplayConfig {
   initialSpeed: number;
   initialHp: number;
   input: LevelInputConfig;
+  tuning: LevelTuningConfig;
 }
 
 export interface LevelInputConfig {
@@ -82,6 +87,46 @@ export interface LevelInputConfig {
   holdStillMaxMs: number;
   directionDebounceAxisDelta: number;
   redirectCooldownMs: number;
+}
+
+export interface ScreenShakeProfile {
+  amplitude: number;
+  durationMs: number;
+  cooldownMs: number;
+}
+
+export interface BorderImpactShakeConfig {
+  enabled: boolean;
+  light: ScreenShakeProfile;
+  medium: ScreenShakeProfile;
+}
+
+export interface BorderImpactRingConfig {
+  enabled: boolean;
+  strokeWidth: number;
+  startScale: number;
+  endScale: number;
+  durationMs: number;
+  easing: string;
+  alphaFade: boolean;
+}
+
+export interface LevelTuningConfig {
+  borderImpactShake: BorderImpactShakeConfig;
+  borderImpactRing: BorderImpactRingConfig;
+}
+
+export interface BorderImpactRingEffect {
+  id: string;
+  center: Vector2;
+  ballRadius: number;
+  startedAt: number;
+  durationMs: number;
+  strokeWidth: number;
+  startScale: number;
+  endScale: number;
+  easing: string;
+  alphaFade: boolean;
 }
 
 export interface LevelNotes {
@@ -152,17 +197,26 @@ export interface CollisionState {
   lastReflectionAfter: Vector2 | null;
 }
 
+export interface ProgressState {
+  score: number;
+  combo: number;
+  lastScoreDelta: number;
+}
+
 export interface RuleState {
+  delayedBorderState: "idle" | "pending";
   pendingBorderId: string | null;
   pendingBorderSide: BorderSide | null;
   pendingBorderColor: BallColorKey | null;
+  specialBounceTriggered: boolean;
+  lastSpecialBounceBorderId: string | null;
   lastRemovedBallId: string | null;
   lastRemovedBallOrder: number | null;
 }
 
 export interface GameState {
   levelId: LevelId;
-  status: "ready";
+  status: "ready" | "failed" | "clear";
   viewport: ViewportConfig;
   playfield: Playfield;
   ballQueue: BallQueue;
@@ -172,10 +226,14 @@ export interface GameState {
   initialSpeed: number;
   hp: number;
   inputConfig: LevelInputConfig;
+  tuningConfig: LevelTuningConfig;
   input: InputState;
   motion: MotionState;
   collision: CollisionState;
+  progress: ProgressState;
   rule: RuleState;
+  failReason: "out_of_bounds" | null;
+  clearReason: "all_targets_cleared_and_no_balls" | null;
 }
 
 export interface BorderEditorState {

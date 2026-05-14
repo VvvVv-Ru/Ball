@@ -2,7 +2,10 @@ import { create } from "zustand";
 import { LEVELS, getLevelConfigById } from "../data/levels";
 import { applyInputIntent } from "../logic/applyInputIntent";
 import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
+import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
+import { resolveLevelClear } from "../logic/levelClear";
+import { resolveOutOfBoundsFailure } from "../logic/outOfBoundsFailure";
 import {
   cancelPointerGestureState,
   endPointerGestureState,
@@ -61,6 +64,28 @@ function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: G
     currentHeadColor: contractState.currentHeadColor,
     remainingBalls: contractState.remainingBalls,
     remainingTargets: contractState.remainingTargets,
+  });
+}
+
+function emitLevelFailIfNeeded(levelId: string | null, gameState: GameStoreState["gameState"]) {
+  if (!gameState || gameState.status !== "failed" || !gameState.failReason || !levelId) {
+    return;
+  }
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.LEVEL_FAIL, {
+    levelId,
+    reason: gameState.failReason,
+  });
+}
+
+function emitLevelClearIfNeeded(levelId: string | null, gameState: GameStoreState["gameState"]) {
+  if (!gameState || gameState.status !== "clear" || !gameState.clearReason || !levelId) {
+    return;
+  }
+
+  gameUiEventBus.emit(UI_EVENT_NAMES.LEVEL_CLEAR, {
+    levelId,
+    reason: gameState.clearReason,
   });
 }
 
@@ -228,33 +253,114 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
-      const { nextGameState, collision } = advanceHeadMotion(state.gameState, now);
+      const { nextGameState, collision, borderImpact, specialBounce } = advanceHeadMotion(state.gameState, now);
 
       if (nextGameState === state.gameState) {
         return state;
       }
 
+      if (borderImpact) {
+        gameUiEventBus.emit(UI_EVENT_NAMES.ON_BORDER_IMPACT, borderImpact);
+      }
+
       if (collision?.type === "mismatch" && collision.borderColor && collision.headColor) {
+        const progressedState = resolveLevelClear(resolveOutOfBoundsFailure(applyMismatchProgress(nextGameState)));
+
         gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, {
           borderId: collision.borderId,
           expectedColor: collision.borderColor,
           actualColor: collision.headColor,
           headIndex: state.gameState.headIndex,
         });
+        gameUiEventBus.emit(UI_EVENT_NAMES.HP_CHANGED, {
+          hp: progressedState.hp,
+          delta: -1,
+          reason: "rule-update",
+        });
+        gameUiEventBus.emit(UI_EVENT_NAMES.COMBO_CHANGED, {
+          combo: progressedState.progress.combo,
+          previousCombo: state.gameState.progress.combo,
+          reason: "mismatch",
+        });
+        emitLevelFailIfNeeded(state.currentLevelId, progressedState);
+        emitLevelClearIfNeeded(state.currentLevelId, progressedState);
+        emitGameStateChanged(state.scene, state.currentLevelId, progressedState);
+
+        return {
+          gameState: progressedState,
+        };
+      }
+
+      if (specialBounce) {
+        const specialBounceState = resolveLevelClear(resolveOutOfBoundsFailure(nextGameState));
+        gameUiEventBus.emit(UI_EVENT_NAMES.DELAYED_BORDER_TRIGGERED, {
+          borderId: specialBounce.borderId,
+          side: state.gameState.rule.pendingBorderSide ?? "top",
+        });
+        gameUiEventBus.emit(UI_EVENT_NAMES.SPECIAL_BOUNCE_RESOLVED, {
+          borderId: specialBounce.borderId,
+          remainingTargets: specialBounce.remainingTargets,
+          isInputLocked: specialBounceState.isInputLocked,
+        });
+        gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, {
+          isInputLocked: specialBounceState.isInputLocked,
+          reason: "special-bounce",
+        });
+        emitLevelFailIfNeeded(state.currentLevelId, specialBounceState);
+        emitLevelClearIfNeeded(state.currentLevelId, specialBounceState);
+        emitGameStateChanged(state.scene, state.currentLevelId, specialBounceState);
+
+        return {
+          gameState: specialBounceState,
+        };
       }
 
       if (collision?.type === "match" && collision.borderColor) {
+        const progressedState = resolveLevelClear(resolveOutOfBoundsFailure(applyMatchProgress(nextGameState)));
+
         gameUiEventBus.emit(UI_EVENT_NAMES.ON_COLLISION_MATCH, {
           borderId: collision.borderId,
           color: collision.borderColor,
           headIndex: state.gameState.headIndex,
         });
+        if (progressedState.rule.pendingBorderId && progressedState.rule.pendingBorderSide && progressedState.rule.pendingBorderColor) {
+          gameUiEventBus.emit(UI_EVENT_NAMES.DELAYED_BORDER_ENTERED, {
+            borderId: progressedState.rule.pendingBorderId,
+            side: progressedState.rule.pendingBorderSide,
+            color: progressedState.rule.pendingBorderColor,
+          });
+        }
+        gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, {
+          isInputLocked: progressedState.isInputLocked,
+          reason: "delayed-border",
+        });
+        gameUiEventBus.emit(UI_EVENT_NAMES.UI_UPDATE_SCORE, {
+          score: progressedState.progress.score,
+          combo: progressedState.progress.combo,
+          reason: "rule-update",
+        });
+        gameUiEventBus.emit(UI_EVENT_NAMES.COMBO_CHANGED, {
+          combo: progressedState.progress.combo,
+          previousCombo: state.gameState.progress.combo,
+          reason: "match",
+        });
+        emitLevelFailIfNeeded(state.currentLevelId, progressedState);
+        emitLevelClearIfNeeded(state.currentLevelId, progressedState);
+        emitGameStateChanged(state.scene, state.currentLevelId, progressedState);
+
+        return {
+          gameState: progressedState,
+        };
       }
 
-      emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+      const resolvedGameState = resolveLevelClear(resolveOutOfBoundsFailure(nextGameState));
+
+      emitLevelFailIfNeeded(state.currentLevelId, resolvedGameState);
+      emitLevelClearIfNeeded(state.currentLevelId, resolvedGameState);
+      emitGameStateChanged(state.scene, state.currentLevelId, resolvedGameState);
 
       return {
-        gameState: nextGameState,
+        gameState: resolvedGameState,
       };
     });
   },
@@ -364,6 +470,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
 
       emitGameStateChanged(state.scene, state.currentLevelId, nextGameState);
+      gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, {
+        isInputLocked: isLocked,
+        reason: "manual",
+      });
 
       return {
         gameState: {

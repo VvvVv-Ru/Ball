@@ -131,6 +131,33 @@ button {
   border-radius: 28px;
   background: #fefcea;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+  will-change: transform;
+}
+
+.stage-frame.is-stage-shaking {
+  animation: stage-impact-shake var(--stage-shake-duration, 120ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes stage-impact-shake {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  24% {
+    transform: translate3d(var(--stage-shake-x, 0px), var(--stage-shake-y, 0px), 0);
+  }
+
+  52% {
+    transform: translate3d(calc(var(--stage-shake-x, 0px) * -0.72), calc(var(--stage-shake-y, 0px) * -0.72), 0);
+  }
+
+  78% {
+    transform: translate3d(calc(var(--stage-shake-x, 0px) * 0.38), calc(var(--stage-shake-y, 0px) * 0.38), 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .stage-frame::before {
@@ -151,6 +178,8 @@ button {
 
 .playfield-root,
 .playfield-surface,
+.border-impact-ring-layer,
+.border-impact-ring,
 .playfield-borders,
 .playfield-border,
 .playfield-border-segment,
@@ -169,6 +198,12 @@ button {
   inset: 0;
 }
 
+.border-impact-ring-layer {
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .ball-queue-item {
   border-radius: 50%;
 }
@@ -180,6 +215,26 @@ button {
 .playfield-border-segment {
   border-radius: 999px;
   box-shadow: 0 0 24px rgba(0, 0, 0, 0.16);
+}
+
+.border-impact-ring {
+  border-radius: 50%;
+  border: var(--impact-ring-stroke-width, 3px) solid #000000;
+  background: transparent;
+  transform: translate(-50%, -50%) scale(var(--impact-ring-start-scale, 1));
+  animation: border-impact-ring-expand var(--impact-ring-duration, 220ms) var(--impact-ring-easing, ease-out) both;
+}
+
+@keyframes border-impact-ring-expand {
+  from {
+    transform: translate(-50%, -50%) scale(var(--impact-ring-start-scale, 1));
+    opacity: 1;
+  }
+
+  to {
+    transform: translate(-50%, -50%) scale(var(--impact-ring-end-scale, 2));
+    opacity: var(--impact-ring-final-opacity, 0);
+  }
 }
 
 .ui-shell {
@@ -215,6 +270,62 @@ button {
   gap: 14px;
   max-height: min(78vh, 860px);
   overflow: auto;
+}
+
+.dev-debug-shell {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 4;
+  width: min(340px, calc(100vw - 32px));
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(8, 12, 24, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.shake-debug-shell {
+  backdrop-filter: blur(10px);
+}
+
+.shake-panel-section {
+  display: grid;
+  gap: 12px;
+}
+
+.shake-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.shake-toggle-row,
+.shake-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shake-toggle-row {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shake-toggle-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.shake-panel-source {
+  font-size: 12px;
+  color: #b5c0ea;
+  text-align: right;
 }
 
 .editor-toolbar,
@@ -303,6 +414,10 @@ button {
   .border-editor-shell {
     max-height: min(60vh, 620px);
   }
+
+  .dev-debug-shell {
+    width: min(320px, calc(100vw - 24px));
+  }
 }
 
 @media (max-width: 640px) {
@@ -337,12 +452,23 @@ button {
     bottom: 12px;
   }
 
+  .dev-debug-shell {
+    left: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+  }
+
   .editor-grid {
     grid-template-columns: 1fr;
   }
 
+  .shake-panel-grid {
+    grid-template-columns: 1fr;
+  }
+
   .editor-inline-metrics,
-  .editor-toolbar {
+  .editor-toolbar,
+  .shake-panel-footer {
     align-items: stretch;
     flex-direction: column;
   }

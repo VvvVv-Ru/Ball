@@ -1,4 +1,5 @@
-import type { GameState, InputDirection, Vector2 } from "../types/game";
+import type { BorderImpactKind, BorderSide, GameState, InputDirection, ShakeIntensity, Vector2 } from "../types/game";
+import { resolveDelayedBorderTrigger } from "./delayedBorderResolution";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
 import { resolveHeadMatch } from "./headMatchResolution";
 
@@ -131,6 +132,90 @@ function getRedirectCoolingState(gameState: GameState, now: number) {
   return now - lastRedirectAt < gameState.motion.redirectCooldownMs;
 }
 
+function getRemainingActiveBorders(gameState: GameState) {
+  return gameState.playfield.borders.filter((border) => border.active).length;
+}
+
+function isHeadAlreadyTouchingSide(gameState: GameState, side: BorderSide) {
+  const headBall = gameState.ballQueue.balls[gameState.headIndex];
+
+  if (!headBall) {
+    return false;
+  }
+
+  const { rect, borderThickness } = gameState.playfield;
+  const tolerance = 0.01;
+  const minX = rect.x + borderThickness + headBall.radius;
+  const maxX = rect.x + rect.width - borderThickness - headBall.radius;
+  const minY = rect.y + borderThickness + headBall.radius;
+  const maxY = rect.y + rect.height - borderThickness - headBall.radius;
+
+  if (side === "top") {
+    return Math.abs(headBall.position.y - minY) <= tolerance;
+  }
+
+  if (side === "bottom") {
+    return Math.abs(headBall.position.y - maxY) <= tolerance;
+  }
+
+  if (side === "left") {
+    return Math.abs(headBall.position.x - minX) <= tolerance;
+  }
+
+  return Math.abs(headBall.position.x - maxX) <= tolerance;
+}
+
+function getBorderImpact(collisionResult: NonNullable<ResolvedHeadCollisionResult>, gameState: GameState, now: number, isDelayedBorderTrigger: boolean) {
+  if (isHeadAlreadyTouchingSide(gameState, collisionResult.collision.side)) {
+    return null;
+  }
+
+  const headBall = gameState.ballQueue.balls[gameState.headIndex];
+
+  if (!headBall) {
+    return null;
+  }
+
+  const impactKind: BorderImpactKind = isDelayedBorderTrigger ? "special-bounce" : collisionResult.collision.type;
+  const shakeIntensity: ShakeIntensity = impactKind === "mismatch" ? "medium" : "light";
+
+  return {
+    borderId: collisionResult.collision.borderId,
+    side: collisionResult.collision.side,
+    impactKind,
+    shakeIntensity,
+    center: { ...collisionResult.resolvedPosition },
+    ballRadius: headBall.radius,
+    occurredAt: now,
+  };
+}
+
+type ResolvedHeadCollisionResult = ReturnType<typeof resolveHeadBorderCollision>;
+
+type HeadCollisionResult = ResolvedHeadCollisionResult extends infer TResult
+  ? TResult extends { collision: infer TCollision }
+    ? TCollision | null
+    : null
+  : null;
+
+interface AdvanceHeadMotionResult {
+  nextGameState: GameState;
+  collision: HeadCollisionResult;
+  borderImpact: {
+    borderId: string;
+    side: BorderSide;
+    impactKind: BorderImpactKind;
+    shakeIntensity: ShakeIntensity;
+    center: Vector2;
+    ballRadius: number;
+    occurredAt: number;
+  } | null;
+  specialBounce: {
+    borderId: string;
+    remainingTargets: number;
+  } | null;
+}
+
 export function applyLaunchMotion(gameState: GameState, direction: InputDirection, occurredAt: number): GameState {
   if (gameState.isInputLocked) {
     return gameState;
@@ -165,9 +250,12 @@ export function applyLaunchMotion(gameState: GameState, direction: InputDirectio
   };
 }
 
-export function advanceHeadMotion(gameState: GameState, now: number) {
+export function advanceHeadMotion(
+  gameState: GameState,
+  now: number,
+): AdvanceHeadMotionResult {
   if (!gameState.motion.isLaunched || !gameState.motion.currentDirection) {
-    return { nextGameState: gameState, collision: null };
+    return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
   const isRedirectCooling = getRedirectCoolingState(gameState, now);
@@ -183,19 +271,21 @@ export function advanceHeadMotion(gameState: GameState, now: number) {
         },
       },
       collision: null,
+      borderImpact: null,
+      specialBounce: null,
     };
   }
 
   const deltaSeconds = Math.max(0, (now - gameState.motion.lastTickAt) / 1000);
 
   if (deltaSeconds === 0) {
-    return { nextGameState: gameState, collision: null };
+    return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
   const headBall = gameState.ballQueue.balls[gameState.headIndex];
 
   if (!headBall) {
-    return { nextGameState: gameState, collision: null };
+    return { nextGameState: gameState, collision: null, borderImpact: null, specialBounce: null };
   }
 
   const vector = getDirectionVector(gameState.motion.currentDirection);
@@ -205,9 +295,16 @@ export function advanceHeadMotion(gameState: GameState, now: number) {
     y: headBall.position.y + vector.y * moveDistance,
   };
   const collisionResult = resolveHeadBorderCollision(gameState, nextHeadPosition);
+  const isDelayedBorderTrigger = Boolean(
+    collisionResult &&
+    gameState.rule.delayedBorderState === "pending" &&
+    gameState.rule.pendingBorderId &&
+    collisionResult.collision.borderId === gameState.rule.pendingBorderId,
+  );
+  const borderImpact = collisionResult ? getBorderImpact(collisionResult, gameState, now, isDelayedBorderTrigger) : null;
   const resolvedHeadPosition = collisionResult?.resolvedPosition ?? nextHeadPosition;
-  const nextDirection = collisionResult?.collision.type === "mismatch"
-    ? collisionResult.nextDirection
+  const nextDirection = collisionResult?.collision.type === "mismatch" || isDelayedBorderTrigger
+    ? (collisionResult?.nextDirection ?? gameState.motion.currentDirection)
     : gameState.motion.currentDirection;
   const nextPath = trimPath(
     [{ ...resolvedHeadPosition }, ...gameState.motion.headPath],
@@ -249,10 +346,26 @@ export function advanceHeadMotion(gameState: GameState, now: number) {
     collision: collisionState,
   };
 
+  if (isDelayedBorderTrigger && collisionResult) {
+    const specialBounceState = resolveDelayedBorderTrigger(baseNextGameState, collisionResult.collision.borderId);
+
+    return {
+        nextGameState: specialBounceState,
+        collision: null,
+        borderImpact,
+        specialBounce: {
+          borderId: collisionResult.collision.borderId,
+          remainingTargets: getRemainingActiveBorders(specialBounceState),
+      },
+    };
+  }
+
   if (collisionResult?.collision.type === "match") {
     return {
       nextGameState: resolveHeadMatch(baseNextGameState, resolvedHeadPosition, collisionResult.collision.borderId),
       collision: collisionResult.collision,
+      borderImpact,
+      specialBounce: null,
     };
   }
 
@@ -262,5 +375,7 @@ export function advanceHeadMotion(gameState: GameState, now: number) {
       ...baseNextGameState,
     },
     collision: collisionResult?.collision ?? null,
+    borderImpact,
+    specialBounce: null,
   };
 }

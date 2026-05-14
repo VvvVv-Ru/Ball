@@ -43,6 +43,22 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       directionDebounceAxisDelta: levelConfig.gameplay.input.directionDebounceAxisDelta,
       redirectCooldownMs: levelConfig.gameplay.input.redirectCooldownMs,
     },
+    tuningConfig: {
+      borderImpactShake: {
+        enabled: levelConfig.gameplay.tuning.borderImpactShake.enabled,
+        light: { ...levelConfig.gameplay.tuning.borderImpactShake.light },
+        medium: { ...levelConfig.gameplay.tuning.borderImpactShake.medium },
+      },
+      borderImpactRing: {
+        enabled: levelConfig.gameplay.tuning.borderImpactRing.enabled,
+        strokeWidth: levelConfig.gameplay.tuning.borderImpactRing.strokeWidth,
+        startScale: levelConfig.gameplay.tuning.borderImpactRing.startScale,
+        endScale: levelConfig.gameplay.tuning.borderImpactRing.endScale,
+        durationMs: levelConfig.gameplay.tuning.borderImpactRing.durationMs,
+        easing: levelConfig.gameplay.tuning.borderImpactRing.easing,
+        alphaFade: levelConfig.gameplay.tuning.borderImpactRing.alphaFade,
+      },
+    },
     input: {
       lastInputDirection: null,
       lastInputVector: { x: 0, y: 0 },
@@ -81,12 +97,22 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       lastReflectionBefore: null,
       lastReflectionAfter: null,
     },
+    progress: {
+      score: 0,
+      combo: 0,
+      lastScoreDelta: 0,
+    },
     rule: {
+      delayedBorderState: "idle",
       pendingBorderId: null,
       pendingBorderSide: null,
       pendingBorderColor: null,
+      specialBounceTriggered: false,
+      lastSpecialBounceBorderId: null,
       lastRemovedBallId: null,
       lastRemovedBallOrder: null,
     },
+    failReason: null,
+    clearReason: null,
   };
 }

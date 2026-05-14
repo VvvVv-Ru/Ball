@@ -6,13 +6,17 @@ function getLevelState(state: GameStoreState): UiStateContract["levelState"] {
     return state.scene === "playing" ? "idle" : "idle";
   }
 
+  if (state.gameState.status === "failed" || state.gameState.status === "clear") {
+    return state.gameState.status;
+  }
+
   return state.scene === "playing" ? "playing" : state.gameState.status;
 }
 
 export const uiStateSelectors = {
-  score: (_state: GameStoreState) => 0,
+  score: (state: GameStoreState) => state.gameState?.progress.score ?? 0,
   hp: (state: GameStoreState) => state.gameState?.hp ?? 0,
-  combo: (_state: GameStoreState) => 0,
+  combo: (state: GameStoreState) => state.gameState?.progress.combo ?? 0,
   levelState: (state: GameStoreState) => getLevelState(state),
   isInputLocked: (state: GameStoreState) => state.gameState?.isInputLocked ?? false,
   currentHeadColor: (state: GameStoreState) => state.gameState?.currentHeadColor ?? null,

@@ -37,7 +37,7 @@ function getInnerBounds(gameState: GameState, radius: number) {
 }
 
 function getBorderBySide(gameState: GameState, side: Border["side"]) {
-  return gameState.playfield.borders.find((border) => border.side === side) ?? null;
+  return gameState.playfield.borders.find((border) => border.side === side && border.active) ?? null;
 }
 
 export function resolveHeadBorderCollision(gameState: GameState, nextHeadPosition: Vector2) {

@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { Board } from "../engine/Board";
 import { gameUiEventBus } from "../store/gameUiEventBus";
 import { gameStoreSelectors, useGameStore } from "../store/useGameStore";
 import { uiStateSelectors } from "../store/uiSelectors";
-import type { InputDirection, PointerGesturePayload, PointerInputSource } from "../types/game";
+import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeConfig, InputDirection, PointerGesturePayload, PointerInputSource, ShakeIntensity } from "../types/game";
 import { UI_EVENT_NAMES } from "../types/uiContract";
+import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
+
+const MAX_ACTIVE_BORDER_RINGS = 6;
 
 const KEY_DIRECTION_MAP: Record<string, InputDirection> = {
   ArrowUp: "up",
@@ -44,8 +47,20 @@ function createPointerPayload(event: ReactPointerEvent<HTMLElement>): PointerGes
 
 function isBlockedPointerTarget(target: EventTarget | null) {
   return target instanceof HTMLElement
-    ? Boolean(target.closest(".ui-shell, .floating-actions, .border-editor-shell, button, input, select, textarea, label"))
+    ? Boolean(target.closest(".ui-shell, .floating-actions, .border-editor-shell, .dev-debug-shell, button, input, select, textarea, label"))
     : false;
+}
+
+function getShakeRank(intensity: ShakeIntensity | null) {
+  if (intensity === "medium") {
+    return 2;
+  }
+
+  if (intensity === "light") {
+    return 1;
+  }
+
+  return 0;
 }
 
 export function GamePlayView() {
@@ -71,8 +86,133 @@ export function GamePlayView() {
   const backToSelect = useGameStore((state) => state.backToSelect);
   const backToMenu = useGameStore((state) => state.backToMenu);
   const [latestUiEvent, setLatestUiEvent] = useState<string>("-");
+  const [stageShake, setStageShake] = useState<{ active: boolean; offsetX: number; offsetY: number; durationMs: number } | null>(null);
+  const [borderImpactRings, setBorderImpactRings] = useState<BorderImpactRingEffect[]>([]);
+  const shakeTimeoutRef = useRef<number | null>(null);
+  const shakeRafRef = useRef<number | null>(null);
+  const ringCleanupTimeoutRef = useRef<number | null>(null);
+  const lastShakeStartedAtRef = useRef<number>(-Infinity);
+  const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+
+      if (shakeRafRef.current !== null) {
+        window.cancelAnimationFrame(shakeRafRef.current);
+      }
+
+      if (ringCleanupTimeoutRef.current !== null) {
+        window.clearTimeout(ringCleanupTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ringCleanupTimeoutRef.current !== null) {
+      window.clearTimeout(ringCleanupTimeoutRef.current);
+      ringCleanupTimeoutRef.current = null;
+    }
+
+    if (borderImpactRings.length === 0) {
+      return undefined;
+    }
+
+    const nextExpiryAt = Math.min(...borderImpactRings.map((effect) => effect.startedAt + effect.durationMs));
+    const delay = Math.max(0, nextExpiryAt - performance.now());
+
+    ringCleanupTimeoutRef.current = window.setTimeout(() => {
+      const now = performance.now();
+      setBorderImpactRings((current) => current.filter((effect) => effect.startedAt + effect.durationMs > now));
+      ringCleanupTimeoutRef.current = null;
+    }, delay + 16);
+
+    return () => {
+      if (ringCleanupTimeoutRef.current !== null) {
+        window.clearTimeout(ringCleanupTimeoutRef.current);
+        ringCleanupTimeoutRef.current = null;
+      }
+    };
+  }, [borderImpactRings]);
+
+  function triggerStageShake(config: BorderImpactShakeConfig, intensity: ShakeIntensity, occurredAt: number) {
+    if (!config.enabled) {
+      return;
+    }
+
+    const profile = config[intensity];
+    const activeIntensity = activeShakeIntensityRef.current;
+    const isCoolingDown = occurredAt - lastShakeStartedAtRef.current < profile.cooldownMs;
+    const canOverrideActiveShake = getShakeRank(intensity) > getShakeRank(activeIntensity);
+
+    if (isCoolingDown && !canOverrideActiveShake) {
+      return;
+    }
+
+    if (shakeTimeoutRef.current !== null) {
+      window.clearTimeout(shakeTimeoutRef.current);
+      shakeTimeoutRef.current = null;
+    }
+
+    if (shakeRafRef.current !== null) {
+      window.cancelAnimationFrame(shakeRafRef.current);
+      shakeRafRef.current = null;
+    }
+
+    const angle = Math.random() * Math.PI * 2;
+    const offsetX = Math.cos(angle) * profile.amplitude;
+    const offsetY = Math.sin(angle) * profile.amplitude;
+
+    setStageShake(null);
+
+    shakeRafRef.current = window.requestAnimationFrame(() => {
+      setStageShake({
+        active: true,
+        offsetX,
+        offsetY,
+        durationMs: profile.durationMs,
+      });
+      lastShakeStartedAtRef.current = occurredAt;
+      activeShakeIntensityRef.current = intensity;
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        setStageShake(null);
+        activeShakeIntensityRef.current = null;
+        shakeTimeoutRef.current = null;
+      }, profile.durationMs);
+    });
+  }
+
+  function triggerBorderImpactRing(config: BorderImpactRingConfig, payload: BorderImpactPayload) {
+    if (!config.enabled) {
+      return;
+    }
+
+    const now = performance.now();
+
+    setBorderImpactRings((current) => {
+      const activeEffects = current.filter((effect) => effect.startedAt + effect.durationMs > now);
+      const nextEffect: BorderImpactRingEffect = {
+        id: `${payload.borderId}-${payload.occurredAt}`,
+        center: { ...payload.center },
+        ballRadius: payload.ballRadius,
+        startedAt: now,
+        durationMs: config.durationMs,
+        strokeWidth: config.strokeWidth,
+        startScale: config.startScale,
+        endScale: config.endScale,
+        easing: config.easing,
+        alphaFade: config.alphaFade,
+      };
+
+      return [...activeEffects, nextEffect].slice(-MAX_ACTIVE_BORDER_RINGS);
+    });
+  }
+
+  useEffect(() => {
+    const borderImpactShakeConfig = gameState?.tuningConfig.borderImpactShake;
+    const borderImpactRingConfig = gameState?.tuningConfig.borderImpactRing;
     const unsubscribeStateChanged = gameUiEventBus.subscribe(UI_EVENT_NAMES.GAME_STATE_CHANGED, (payload) => {
       setLatestUiEvent(`GAME_STATE_CHANGED:${payload.levelState}`);
     });
@@ -85,14 +225,62 @@ export function GamePlayView() {
     const unsubscribeMatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, (payload) => {
       setLatestUiEvent(`ON_COLLISION_MATCH:${payload.borderId}/${payload.color}`);
     });
+    const unsubscribeDelayedBorder = gameUiEventBus.subscribe(UI_EVENT_NAMES.DELAYED_BORDER_ENTERED, (payload) => {
+      setLatestUiEvent(`DELAYED_BORDER_ENTERED:${payload.borderId}/${payload.side}`);
+    });
+    const unsubscribeDelayedTriggered = gameUiEventBus.subscribe(UI_EVENT_NAMES.DELAYED_BORDER_TRIGGERED, (payload) => {
+      setLatestUiEvent(`DELAYED_BORDER_TRIGGERED:${payload.borderId}/${payload.side}`);
+    });
+    const unsubscribeSpecialBounce = gameUiEventBus.subscribe(UI_EVENT_NAMES.SPECIAL_BOUNCE_RESOLVED, (payload) => {
+      setLatestUiEvent(`SPECIAL_BOUNCE_RESOLVED:${payload.borderId}/${payload.remainingTargets}`);
+    });
+    const unsubscribeBorderImpact = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_BORDER_IMPACT, (payload) => {
+      setLatestUiEvent(`ON_BORDER_IMPACT:${payload.impactKind}/${payload.shakeIntensity}`);
+
+      if (borderImpactShakeConfig) {
+        triggerStageShake(borderImpactShakeConfig, payload.shakeIntensity, payload.occurredAt);
+      }
+
+      if (borderImpactRingConfig) {
+        triggerBorderImpactRing(borderImpactRingConfig, payload);
+      }
+    });
+    const unsubscribeInputLock = gameUiEventBus.subscribe(UI_EVENT_NAMES.INPUT_LOCK_CHANGED, (payload) => {
+      setLatestUiEvent(`INPUT_LOCK_CHANGED:${String(payload.isInputLocked)}`);
+    });
+    const unsubscribeScore = gameUiEventBus.subscribe(UI_EVENT_NAMES.UI_UPDATE_SCORE, (payload) => {
+      setLatestUiEvent(`UI_UPDATE_SCORE:+${payload.score}/${payload.combo}`);
+    });
+    const unsubscribeCombo = gameUiEventBus.subscribe(UI_EVENT_NAMES.COMBO_CHANGED, (payload) => {
+      setLatestUiEvent(`COMBO_CHANGED:${payload.previousCombo}->${payload.combo}`);
+    });
+    const unsubscribeHp = gameUiEventBus.subscribe(UI_EVENT_NAMES.HP_CHANGED, (payload) => {
+      setLatestUiEvent(`HP_CHANGED:${payload.hp}/${payload.delta}`);
+    });
+    const unsubscribeLevelClear = gameUiEventBus.subscribe(UI_EVENT_NAMES.LEVEL_CLEAR, (payload) => {
+      setLatestUiEvent(`LEVEL_CLEAR:${payload.reason}`);
+    });
+    const unsubscribeLevelFail = gameUiEventBus.subscribe(UI_EVENT_NAMES.LEVEL_FAIL, (payload) => {
+      setLatestUiEvent(`LEVEL_FAIL:${payload.reason}`);
+    });
 
     return () => {
       unsubscribeStateChanged();
       unsubscribeAimUpdate();
       unsubscribeMismatch();
       unsubscribeMatch();
+      unsubscribeDelayedBorder();
+      unsubscribeDelayedTriggered();
+      unsubscribeSpecialBounce();
+      unsubscribeBorderImpact();
+      unsubscribeInputLock();
+      unsubscribeScore();
+      unsubscribeCombo();
+      unsubscribeHp();
+      unsubscribeLevelClear();
+      unsubscribeLevelFail();
     };
-  }, []);
+  }, [gameState?.tuningConfig.borderImpactRing, gameState?.tuningConfig.borderImpactShake]);
 
   useEffect(() => {
     if (!currentLevelId) {
@@ -103,6 +291,10 @@ export function GamePlayView() {
       const direction = KEY_DIRECTION_MAP[event.key];
 
       if (!direction) {
+        return;
+      }
+
+      if (gameState?.isInputLocked) {
         return;
       }
 
@@ -137,7 +329,7 @@ export function GamePlayView() {
   }, [currentLevelId, tickMotion]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!gameState || !event.isPrimary || isBlockedPointerTarget(event.target)) {
+    if (!gameState || gameState.isInputLocked || !event.isPrimary || isBlockedPointerTarget(event.target)) {
       return;
     }
 
@@ -198,6 +390,14 @@ export function GamePlayView() {
     );
   }
 
+  const headBall = gameState.ballQueue.balls[gameState.headIndex] ?? null;
+  const isHeadOutOfBounds = headBall
+    ? headBall.position.x - headBall.radius < 0 ||
+      headBall.position.x + headBall.radius > gameState.viewport.width ||
+      headBall.position.y - headBall.radius < 0 ||
+      headBall.position.y + headBall.radius > gameState.viewport.height
+    : false;
+
   return (
     <main
       className="play-scene"
@@ -206,7 +406,7 @@ export function GamePlayView() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <Board gameState={gameState} />
+      <Board gameState={gameState} stageShake={stageShake} borderImpactRings={borderImpactRings} />
 
       <section
         className="ui-shell ui-shell--left"
@@ -220,13 +420,27 @@ export function GamePlayView() {
           <li>score: {score}</li>
           <li>hp: {hp}</li>
           <li>combo: {combo}</li>
+          <li>lastScoreDelta: {gameState.progress.lastScoreDelta}</li>
           <li>levelState: {levelState}</li>
+          <li>clearReason: {gameState.clearReason ?? "-"}</li>
+          <li>failReason: {gameState.failReason ?? "-"}</li>
+          <li>outOfBounds: {String(isHeadOutOfBounds)}</li>
           <li>isInputLocked: {String(isInputLocked)}</li>
           <li>currentHeadColor: {currentHeadColor ?? "-"}</li>
           <li>remainingBalls: {remainingBalls}</li>
           <li>remainingTargets: {remainingTargets}</li>
           <li>latestUiEvent: {latestUiEvent}</li>
+          <li>shakeEnabled: {String(gameState.tuningConfig.borderImpactShake.enabled)}</li>
+          <li>shakeLightAmplitude: {gameState.tuningConfig.borderImpactShake.light.amplitude}</li>
+          <li>shakeMediumAmplitude: {gameState.tuningConfig.borderImpactShake.medium.amplitude}</li>
+          <li>ringEnabled: {String(gameState.tuningConfig.borderImpactRing.enabled)}</li>
+          <li>ringStrokeWidth: {gameState.tuningConfig.borderImpactRing.strokeWidth}</li>
+          <li>ringDurationMs: {gameState.tuningConfig.borderImpactRing.durationMs}</li>
+          <li>activeImpactRings: {borderImpactRings.length}</li>
+          <li>delayedBorderState: {gameState.rule.delayedBorderState}</li>
           <li>pendingBorderId: {gameState.rule.pendingBorderId ?? "-"}</li>
+          <li>specialBounceTriggered: {String(gameState.rule.specialBounceTriggered)}</li>
+          <li>remainingBorders: {remainingTargets}</li>
           <li>removedBallId: {gameState.rule.lastRemovedBallId ?? "-"}</li>
           <li>removedBallOrder: {gameState.rule.lastRemovedBallOrder ?? "-"}</li>
           <li>lastCollisionSide: {gameState.collision.lastCollisionSide ?? "-"}</li>
