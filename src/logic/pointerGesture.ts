@@ -2,7 +2,6 @@ import type {
   GameState,
   PointerGesturePayload,
   PointerGestureState,
-  PointerInputSource,
   Vector2,
 } from "../types/game";
 
@@ -10,8 +9,8 @@ function clonePoint(point: Vector2 | null) {
   return point ? { ...point } : null;
 }
 
-function getTriggerDistance(gameState: GameState, pointerType: PointerInputSource) {
-  return gameState.inputConfig.triggerDistance[pointerType] ?? gameState.inputConfig.triggerDistance.unknown;
+function getTriggerDistance(gameState: GameState) {
+  return gameState.tuningConfig.swipeLaunch.minSwipeDistance;
 }
 
 function createPointerState(gameState: GameState, partial: Partial<PointerGestureState>) {
@@ -51,7 +50,7 @@ function getNormalizedVectorFromDelta(start: Vector2, current: Vector2): Vector2
 }
 
 export function startPointerGestureState(gameState: GameState, payload: PointerGesturePayload): GameState {
-  const currentThreshold = getTriggerDistance(gameState, payload.pointerType);
+  const currentThreshold = getTriggerDistance(gameState);
 
   return withPointerState(
     gameState,
@@ -72,19 +71,23 @@ export function startPointerGestureState(gameState: GameState, payload: PointerG
 export function updatePointerGestureState(
   gameState: GameState,
   payload: PointerGesturePayload,
-): { nextState: GameState; triggeredVector: Vector2 | null } {
+): { nextState: GameState; triggeredSwipe: { vector: Vector2; distance: number } | null } {
   const pointer = gameState.input.pointer;
 
   if (!pointer.isPointerActive || !pointer.pointerStart) {
-    return { nextState: gameState, triggeredVector: null };
+    return { nextState: gameState, triggeredSwipe: null };
   }
 
-  const currentThreshold = pointer.currentThreshold ?? getTriggerDistance(gameState, payload.pointerType);
+  const currentThreshold = pointer.currentThreshold ?? getTriggerDistance(gameState);
   const currentDistance = getDistance(pointer.pointerStart, payload.position);
   const hasReachedThreshold = currentDistance >= currentThreshold;
   const shouldTrigger = hasReachedThreshold && !pointer.hasTriggeredInCurrentGesture && !gameState.isInputLocked;
-  const triggeredVector = shouldTrigger
-    ? getNormalizedVectorFromDelta(pointer.pointerStart, payload.position)
+  const triggeredVector = shouldTrigger ? getNormalizedVectorFromDelta(pointer.pointerStart, payload.position) : null;
+  const triggeredSwipe = triggeredVector
+    ? {
+        vector: triggeredVector,
+        distance: currentDistance,
+      }
     : null;
 
   return {
@@ -99,7 +102,7 @@ export function updatePointerGestureState(
         hasTriggeredInCurrentGesture: pointer.hasTriggeredInCurrentGesture || shouldTrigger,
       }),
     ),
-    triggeredVector,
+    triggeredSwipe,
   };
 }
 
@@ -110,7 +113,7 @@ export function endPointerGestureState(gameState: GameState, payload: PointerGes
     return gameState;
   }
 
-  const currentThreshold = pointer.currentThreshold ?? getTriggerDistance(gameState, payload.pointerType);
+  const currentThreshold = pointer.currentThreshold ?? getTriggerDistance(gameState);
   const currentDistance = getDistance(pointer.pointerStart, payload.position);
   const elapsedMs = pointer.pointerStartedAt ? payload.at - pointer.pointerStartedAt : 0;
   const hasReachedThreshold = currentDistance >= currentThreshold;

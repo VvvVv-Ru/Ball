@@ -35,15 +35,19 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     headIndex,
     currentHeadColor,
     isInputLocked: false,
-    initialSpeed: levelConfig.gameplay.initialSpeed,
     hp: levelConfig.gameplay.initialHp,
     inputConfig: {
-      triggerDistance: { ...levelConfig.gameplay.input.triggerDistance },
       holdStillMaxMs: levelConfig.gameplay.input.holdStillMaxMs,
       directionDebounceAxisDelta: levelConfig.gameplay.input.directionDebounceAxisDelta,
       redirectCooldownMs: levelConfig.gameplay.input.redirectCooldownMs,
     },
     tuningConfig: {
+      swipeLaunch: {
+        minSpeed: levelConfig.gameplay.tuning.swipeLaunch.minSpeed,
+        maxSpeed: levelConfig.gameplay.tuning.swipeLaunch.maxSpeed,
+        minSwipeDistance: levelConfig.gameplay.tuning.swipeLaunch.minSwipeDistance,
+        maxSwipeDistance: levelConfig.gameplay.tuning.swipeLaunch.maxSwipeDistance,
+      },
       borderImpactShake: {
         enabled: levelConfig.gameplay.tuning.borderImpactShake.enabled,
         light: { ...levelConfig.gameplay.tuning.borderImpactShake.light },

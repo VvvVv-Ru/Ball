@@ -233,7 +233,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       const inputVector = getInputVectorFromDirection(direction);
-      const nextGameState = applyLaunchMotion(applyInputIntent(state.gameState, inputVector, occurredAt, direction), inputVector, occurredAt);
+      const swipeDistance = state.gameState.tuningConfig.swipeLaunch.minSwipeDistance;
+      const nextGameState = applyLaunchMotion(
+        applyInputIntent(state.gameState, inputVector, occurredAt, direction),
+        inputVector,
+        occurredAt,
+        swipeDistance,
+      );
 
       gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
         direction,
@@ -384,16 +390,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return state;
       }
 
-      const { nextState, triggeredVector } = updatePointerGestureState(state.gameState, payload);
+      const { nextState, triggeredSwipe } = updatePointerGestureState(state.gameState, payload);
 
-      const nextGameState = triggeredVector
-        ? applyLaunchMotion(applyInputIntent(nextState, triggeredVector, payload.at, null), triggeredVector, payload.at)
+      const nextGameState = triggeredSwipe
+        ? applyLaunchMotion(
+            applyInputIntent(nextState, triggeredSwipe.vector, payload.at, null),
+            triggeredSwipe.vector,
+            payload.at,
+            triggeredSwipe.distance,
+          )
         : nextState;
 
-      if (triggeredVector) {
+      if (triggeredSwipe) {
         gameUiEventBus.emit(UI_EVENT_NAMES.INPUT_AIM_UPDATE, {
           direction: null,
-          vector: triggeredVector,
+          vector: triggeredSwipe.vector,
           source: payload.pointerType,
           occurredAt: payload.at,
         });

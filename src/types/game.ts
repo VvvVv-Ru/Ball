@@ -76,17 +76,22 @@ export interface BallQueue {
 }
 
 export interface LevelGameplayConfig {
-  initialSpeed: number;
   initialHp: number;
   input: LevelInputConfig;
   tuning: LevelTuningConfig;
 }
 
 export interface LevelInputConfig {
-  triggerDistance: Record<PointerInputSource, number>;
   holdStillMaxMs: number;
   directionDebounceAxisDelta: number;
   redirectCooldownMs: number;
+}
+
+export interface SwipeLaunchTuningConfig {
+  minSpeed: number;
+  maxSpeed: number;
+  minSwipeDistance: number;
+  maxSwipeDistance: number;
 }
 
 export interface ScreenShakeProfile {
@@ -112,6 +117,7 @@ export interface BorderImpactRingConfig {
 }
 
 export interface LevelTuningConfig {
+  swipeLaunch: SwipeLaunchTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
   borderImpactRing: BorderImpactRingConfig;
 }
@@ -223,7 +229,6 @@ export interface GameState {
   headIndex: HeadBallIndex;
   currentHeadColor: BallColorKey | null;
   isInputLocked: boolean;
-  initialSpeed: number;
   hp: number;
   inputConfig: LevelInputConfig;
   tuningConfig: LevelTuningConfig;

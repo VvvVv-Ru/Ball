@@ -465,7 +465,10 @@ export function GamePlayView() {
             {" -> "}
             {gameState.collision.lastReflectionAfter?.x ?? "-"},{gameState.collision.lastReflectionAfter?.y ?? "-"}
           </li>
-          <li>initialSpeed: {gameState.initialSpeed}</li>
+          <li>minSpeed: {gameState.tuningConfig.swipeLaunch.minSpeed}</li>
+          <li>maxSpeed: {gameState.tuningConfig.swipeLaunch.maxSpeed}</li>
+          <li>minSwipeDistance: {gameState.tuningConfig.swipeLaunch.minSwipeDistance}</li>
+          <li>maxSwipeDistance: {gameState.tuningConfig.swipeLaunch.maxSwipeDistance}</li>
           <li>isLaunched: {String(motionState?.isLaunched ?? false)}</li>
           <li>currentVector: {formatVector(motionState?.currentVector)}</li>
           <li>currentSpeed: {motionState?.currentSpeed ?? 0}</li>

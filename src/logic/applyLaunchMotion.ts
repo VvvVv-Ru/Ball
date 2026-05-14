@@ -2,6 +2,7 @@ import type { BorderImpactKind, BorderSide, GameState, ShakeIntensity, Vector2 }
 import { resolveDelayedBorderTrigger } from "./delayedBorderResolution";
 import { resolveHeadBorderCollision } from "./headBorderCollision";
 import { resolveHeadMatch } from "./headMatchResolution";
+import { resolveSwipeLaunchSpeed } from "./swipeLaunchSpeed";
 
 function normalizeVector(vector: Vector2) {
   const magnitude = Math.hypot(vector.x, vector.y);
@@ -226,7 +227,12 @@ interface AdvanceHeadMotionResult {
   } | null;
 }
 
-export function applyLaunchMotion(gameState: GameState, vector: Vector2, occurredAt: number): GameState {
+export function applyLaunchMotion(
+  gameState: GameState,
+  vector: Vector2,
+  occurredAt: number,
+  swipeDistance: number,
+): GameState {
   if (gameState.isInputLocked) {
     return gameState;
   }
@@ -234,6 +240,12 @@ export function applyLaunchMotion(gameState: GameState, vector: Vector2, occurre
   const normalizedVector = normalizeVector(vector);
 
   if (!normalizedVector) {
+    return gameState;
+  }
+
+  const resolvedSpeed = resolveSwipeLaunchSpeed(gameState, swipeDistance);
+
+  if (resolvedSpeed === null) {
     return gameState;
   }
 
@@ -257,7 +269,7 @@ export function applyLaunchMotion(gameState: GameState, vector: Vector2, occurre
       ...gameState.motion,
       isLaunched: true,
       currentVector: normalizedVector,
-      currentSpeed: gameState.initialSpeed,
+      currentSpeed: resolvedSpeed,
       lastTickAt: occurredAt,
       lastRedirectAt: isAlreadyLaunched ? occurredAt : gameState.motion.lastRedirectAt,
       isRedirectCooling: isAlreadyLaunched && !isSameDirection,

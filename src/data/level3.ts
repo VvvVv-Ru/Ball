@@ -8,17 +8,16 @@ const LEVEL3_VIEWPORT = {
 const LEVEL3_PLAYFIELD_SIZE = 960;
 const LEVEL3_BORDER_THICKNESS = 54;
 const LEVEL3_BALL_SURFACE_GAP = 14;
-const LEVEL3_INITIAL_SPEED = 700;
 const LEVEL3_INITIAL_HP = 3;
-const LEVEL3_POINTER_TRIGGER_DISTANCE = {
-  mouse: 8,
-  touch: 10,
-  pen: 10,
-  unknown: 10,
-} as const;
 const LEVEL3_POINTER_HOLD_STILL_MAX_MS = 300;
 const LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA = 6;
 const LEVEL3_REDIRECT_COOLDOWN_MS = 80;
+const LEVEL3_SWIPE_LAUNCH_TUNING = {
+  minSpeed: 1100,
+  maxSpeed: 4000,
+  minSwipeDistance: 10,
+  maxSwipeDistance: 240,
+} as const;
 const LEVEL3_BORDER_IMPACT_SHAKE = {
   enabled: true,
   light: {
@@ -36,7 +35,7 @@ const LEVEL3_BORDER_IMPACT_RING = {
   enabled: true,
   strokeWidth: 0.4,
   startScale: 0.92,
-  endScale: 5,
+  endScale: 15,
   durationMs: 660,
   easing: "cubic-bezier(0.22, 1, 0.36, 1)",
   alphaFade: true,
@@ -176,15 +175,19 @@ export const level3Config: LevelConfig = {
   playfield,
   ballQueue: playfieldBallQueue,
   gameplay: {
-    initialSpeed: LEVEL3_INITIAL_SPEED,
     initialHp: LEVEL3_INITIAL_HP,
     input: {
-      triggerDistance: { ...LEVEL3_POINTER_TRIGGER_DISTANCE },
       holdStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
       directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
       redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
     },
     tuning: {
+      swipeLaunch: {
+        minSpeed: LEVEL3_SWIPE_LAUNCH_TUNING.minSpeed,
+        maxSpeed: LEVEL3_SWIPE_LAUNCH_TUNING.maxSpeed,
+        minSwipeDistance: LEVEL3_SWIPE_LAUNCH_TUNING.minSwipeDistance,
+        maxSwipeDistance: LEVEL3_SWIPE_LAUNCH_TUNING.maxSwipeDistance,
+      },
       borderImpactShake: {
         enabled: LEVEL3_BORDER_IMPACT_SHAKE.enabled,
         light: { ...LEVEL3_BORDER_IMPACT_SHAKE.light },
@@ -211,12 +214,11 @@ export const LEVEL3_CONSTANTS = {
   playfieldSize: LEVEL3_PLAYFIELD_SIZE,
   borderThickness: LEVEL3_BORDER_THICKNESS,
   ballSurfaceGap: LEVEL3_BALL_SURFACE_GAP,
-  initialSpeed: LEVEL3_INITIAL_SPEED,
   initialHp: LEVEL3_INITIAL_HP,
-  pointerTriggerDistance: LEVEL3_POINTER_TRIGGER_DISTANCE,
   pointerHoldStillMaxMs: LEVEL3_POINTER_HOLD_STILL_MAX_MS,
   directionDebounceAxisDelta: LEVEL3_DIRECTION_DEBOUNCE_AXIS_DELTA,
   redirectCooldownMs: LEVEL3_REDIRECT_COOLDOWN_MS,
+  swipeLaunch: LEVEL3_SWIPE_LAUNCH_TUNING,
   borderImpactShake: LEVEL3_BORDER_IMPACT_SHAKE,
   borderImpactRing: LEVEL3_BORDER_IMPACT_RING,
   colorPool: LEVEL3_COLOR_POOL,
