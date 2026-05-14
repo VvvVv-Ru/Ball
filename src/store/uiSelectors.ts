@@ -1,16 +1,22 @@
 import type { GameStoreState } from "../types/game";
 import type { UiStateContract } from "../types/uiContract";
 
+function getCurrentLevelConfig(state: GameStoreState) {
+  return state.levels.find((level) => level.id === state.currentLevelId)
+    ?? state.levels.find((level) => level.id === state.selectedLevelId)
+    ?? null;
+}
+
 function getLevelState(state: GameStoreState): UiStateContract["levelState"] {
   if (!state.gameState) {
-    return state.scene === "playing" ? "idle" : "idle";
+    return "idle";
   }
 
   if (state.gameState.status === "failed" || state.gameState.status === "clear") {
     return state.gameState.status;
   }
 
-  return state.scene === "playing" ? "playing" : state.gameState.status;
+  return "playing";
 }
 
 export const uiStateSelectors = {
@@ -27,6 +33,9 @@ export const uiStateSelectors = {
   currentHeadColor: (state: GameStoreState) => state.gameState?.currentHeadColor ?? null,
   remainingBalls: (state: GameStoreState) => state.gameState?.ballQueue.balls.length ?? 0,
   remainingTargets: (state: GameStoreState) => state.gameState?.playfield.borders.filter((border) => border.active).length ?? 0,
+  currentLevelName: (state: GameStoreState) => getCurrentLevelConfig(state)?.name ?? "未命名关卡",
+  nextLevelName: (state: GameStoreState) => getCurrentLevelConfig(state)?.nextStep.label ?? "未配置下一关",
+  isNextLevelAvailable: (state: GameStoreState) => getCurrentLevelConfig(state)?.nextStep.isAvailable ?? false,
 };
 
 export function selectUiStateContract(state: GameStoreState): UiStateContract {

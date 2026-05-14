@@ -1,40 +1,45 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGameStore } from "./store/useGameStore";
 import { GamePlayView } from "./views/GamePlayView";
-import { LevelSelectView } from "./views/LevelSelectView";
-import { MenuView } from "./views/MenuView";
+import { LevelResultView } from "./views/LevelResultView";
+import { LevelStartView } from "./views/LevelStartView";
 
 function syncSceneFromHash(hash: string) {
   const store = useGameStore.getState();
 
-  if (hash === "#level3") {
-    if (store.selectedLevelId !== "level3") {
-      store.selectLevel("level3");
-    }
-
-    if (store.scene !== "playing" || store.currentLevelId !== "level3") {
-      store.startSelectedLevel();
-    }
-
-    return;
+  if (store.selectedLevelId !== "level3") {
+    store.selectLevel("level3");
   }
 
-  if (hash === "#select") {
-    if (store.scene !== "select") {
-      store.setScene("select");
-    }
+  if (hash !== "#level3" || store.currentLevelId !== "level3" || !store.gameState) {
+    store.startSelectedLevel();
+  }
+}
 
-    return;
+function getClearResultDelayMs() {
+  const gameState = useGameStore.getState().gameState;
+
+  if (!gameState) {
+    return 0;
   }
 
-  if (store.scene !== "menu") {
-    store.backToMenu();
-  }
+  const particleDuration = gameState.tuningConfig.matchImpactParticles.enabled
+    ? gameState.tuningConfig.matchImpactParticles.lifetimeMs
+    : 0;
+  const ringDuration = gameState.tuningConfig.borderImpactRing.enabled
+    ? gameState.tuningConfig.borderImpactRing.durationMs
+    : 0;
+
+  return Math.max(particleDuration, ringDuration);
 }
 
 export default function App() {
   const scene = useGameStore((state) => state.scene);
+  const levelFlowScreen = useGameStore((state) => state.levelFlowScreen);
   const currentLevelId = useGameStore((state) => state.currentLevelId);
+  const gameState = useGameStore((state) => state.gameState);
+  const [isClearResultReady, setIsClearResultReady] = useState(false);
+  const clearResultTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -50,7 +55,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const nextHash = scene === "playing" && currentLevelId ? `#${currentLevelId}` : scene === "select" ? "#select" : "";
+    const nextHash = currentLevelId ? `#${currentLevelId}` : "#level3";
 
     if (window.location.hash === nextHash) {
       return;
@@ -59,13 +64,53 @@ export default function App() {
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash}`);
   }, [currentLevelId, scene]);
 
+  useEffect(() => {
+    if (clearResultTimeoutRef.current !== null) {
+      window.clearTimeout(clearResultTimeoutRef.current);
+      clearResultTimeoutRef.current = null;
+    }
+
+    if (gameState?.status !== "clear") {
+      setIsClearResultReady(false);
+      return undefined;
+    }
+
+    const delayMs = getClearResultDelayMs();
+
+    if (delayMs <= 0) {
+      setIsClearResultReady(true);
+      return undefined;
+    }
+
+    setIsClearResultReady(false);
+    clearResultTimeoutRef.current = window.setTimeout(() => {
+      setIsClearResultReady(true);
+      clearResultTimeoutRef.current = null;
+    }, delayMs);
+
+    return () => {
+      if (clearResultTimeoutRef.current !== null) {
+        window.clearTimeout(clearResultTimeoutRef.current);
+        clearResultTimeoutRef.current = null;
+      }
+    };
+  }, [gameState?.status, currentLevelId]);
+
+  if (gameState?.status === "failed") {
+    return <LevelResultView />;
+  }
+
+  if (gameState?.status === "clear" && isClearResultReady) {
+    return <LevelResultView />;
+  }
+
+  if (scene === "playing" && levelFlowScreen !== "gameplay") {
+    return <LevelStartView />;
+  }
+
   if (scene === "playing") {
     return <GamePlayView />;
   }
 
-  if (scene === "select") {
-    return <LevelSelectView />;
-  }
-
-  return <MenuView />;
+  return null;
 }

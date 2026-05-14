@@ -1,4 +1,6 @@
-export type Scene = "menu" | "select" | "playing";
+export type Scene = "playing";
+
+export type LevelFlowScreen = "start" | "gameplay";
 
 export type LevelId = "level3";
 
@@ -233,6 +235,12 @@ export interface LevelNotes {
   placement: string;
 }
 
+export interface LevelNextStepConfig {
+  label: string;
+  targetLevelId: LevelId | null;
+  isAvailable: boolean;
+}
+
 export interface BallSoftBallVisualState {
   scaleX: number;
   scaleY: number;
@@ -249,6 +257,7 @@ export interface ViewportConfig {
 export interface LevelConfig {
   id: LevelId;
   name: string;
+  nextStep: LevelNextStepConfig;
   viewport: ViewportConfig;
   playfield: Playfield;
   ballQueue: BallQueue;
@@ -364,12 +373,12 @@ export interface BorderUpdatePatch {
 
 export interface GameStoreState {
   scene: Scene;
+  levelFlowScreen: LevelFlowScreen | null;
   levels: LevelConfig[];
   selectedLevelId: LevelId | null;
   currentLevelId: LevelId | null;
   gameState: GameState | null;
   borderEditor: BorderEditorState;
-  setScene: (scene: Scene) => void;
   selectLevel: (levelId: LevelId) => void;
   loadLevel3Config: () => void;
   resetLevel3State: () => void;
@@ -387,12 +396,12 @@ export interface GameStoreState {
   setEditorBorderSegmentCount: (borderId: string, segmentCount: number) => void;
   updateEditorBorderSegmentColor: (borderId: string, segmentIndex: number, color: string) => void;
   startSelectedLevel: () => void;
-  backToMenu: () => void;
-  backToSelect: () => void;
+  enterLevelGameplay: () => void;
 }
 
 export interface GameStoreSelectors {
   selectScene: (state: GameStoreState) => Scene;
+  selectLevelFlowScreen: (state: GameStoreState) => LevelFlowScreen | null;
   selectCurrentLevelId: (state: GameStoreState) => LevelId | null;
   selectGameState: (state: GameStoreState) => GameState | null;
   selectBallQueue: (state: GameStoreState) => BallQueue | null;

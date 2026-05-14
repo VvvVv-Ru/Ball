@@ -222,6 +222,11 @@ const playfieldBallQueue = createLevel3BallQueueConfig(playfield);
 export const level3Config: LevelConfig = {
   id: "level3",
   name: "Level 3 Demo",
+  nextStep: {
+    label: "Level 4",
+    targetLevelId: null,
+    isAvailable: false,
+  },
   viewport: { ...LEVEL3_VIEWPORT },
   playfield,
   ballQueue: playfieldBallQueue,

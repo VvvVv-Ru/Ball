@@ -92,12 +92,12 @@ function emitSoftBallImpactTrigger(
 function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: GameStoreState["gameState"]) {
   const contractState = selectUiStateContract({
     scene,
+    levelFlowScreen: null,
     levels: [],
     selectedLevelId: null,
     currentLevelId: levelId as GameStoreState["currentLevelId"],
     gameState,
     borderEditor: { isOpen: false, selectedBorderId: null },
-    setScene: () => undefined,
     selectLevel: () => undefined,
     loadLevel3Config: () => undefined,
     resetLevel3State: () => undefined,
@@ -115,8 +115,7 @@ function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: G
     setEditorBorderSegmentCount: () => undefined,
     updateEditorBorderSegmentColor: () => undefined,
     startSelectedLevel: () => undefined,
-    backToMenu: () => undefined,
-    backToSelect: () => undefined,
+    enterLevelGameplay: () => undefined,
   });
 
   gameUiEventBus.emit(UI_EVENT_NAMES.GAME_STATE_CHANGED, {
@@ -188,6 +187,8 @@ function finalizeGameplayState(gameState: NonNullable<GameStoreState["gameState"
 }
 
 const initialSelectedLevelId = LEVELS[0]?.id ?? null;
+const initialLevelConfig = getLevelConfigById(initialSelectedLevelId);
+const initialGameState = initialLevelConfig ? createLevel3InitialGameState(initialLevelConfig) : null;
 const initialBorderEditorState = {
   isOpen: false,
   selectedBorderId: null,
@@ -274,15 +275,13 @@ function getNextSelectedBorderId(selectedBorderId: string | null, borders: Borde
 }
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
-  scene: "menu",
+  scene: "playing",
+  levelFlowScreen: initialGameState ? "start" : null,
   levels: LEVELS,
   selectedLevelId: initialSelectedLevelId,
-  currentLevelId: null,
-  gameState: null,
+  currentLevelId: initialLevelConfig?.id ?? null,
+  gameState: initialGameState,
   borderEditor: initialBorderEditorState,
-  setScene: (scene: Scene) => {
-    set({ scene });
-  },
   selectLevel: (levelId) => {
     set({ selectedLevelId: levelId });
   },
@@ -296,8 +295,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const nextGameState = createLevel3InitialGameState(levelConfig);
 
     set({
+      scene: "playing",
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
+      levelFlowScreen: "start",
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
@@ -314,8 +315,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const nextGameState = createLevel3InitialGameState(levelConfig);
 
     set({
+      scene: "playing",
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
+      levelFlowScreen: "start",
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
@@ -764,6 +767,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     set({
       scene: "playing",
+      levelFlowScreen: "start",
       currentLevelId: levelConfig.id,
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
@@ -771,30 +775,22 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     emitGameStateChanged("playing", levelConfig.id, nextGameState);
   },
-  backToMenu: () => {
-    set({
-      scene: "menu",
-      currentLevelId: null,
-      gameState: null,
-      borderEditor: initialBorderEditorState,
-    });
+  enterLevelGameplay: () => {
+    set((state) => {
+      if (!state.gameState || !state.currentLevelId) {
+        return state;
+      }
 
-    emitGameStateChanged("menu", null, null);
-  },
-  backToSelect: () => {
-    set({
-      scene: "select",
-      currentLevelId: null,
-      gameState: null,
-      borderEditor: initialBorderEditorState,
+      return {
+        levelFlowScreen: "gameplay",
+      };
     });
-
-    emitGameStateChanged("select", null, null);
   },
 }));
 
 export const gameStoreSelectors: GameStoreSelectors = {
   selectScene: (state) => state.scene,
+  selectLevelFlowScreen: (state) => state.levelFlowScreen,
   selectCurrentLevelId: (state) => state.currentLevelId,
   selectGameState: (state) => state.gameState,
   selectBallQueue: (state) => state.gameState?.ballQueue ?? null,

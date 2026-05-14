@@ -123,8 +123,7 @@ export function GamePlayView() {
   const updatePointerGesture = useGameStore((state) => state.updatePointerGesture);
   const endPointerGesture = useGameStore((state) => state.endPointerGesture);
   const cancelPointerGesture = useGameStore((state) => state.cancelPointerGesture);
-  const backToSelect = useGameStore((state) => state.backToSelect);
-  const backToMenu = useGameStore((state) => state.backToMenu);
+  const startSelectedLevel = useGameStore((state) => state.startSelectedLevel);
   const [latestUiEvent, setLatestUiEvent] = useState<string>("-");
   const [stageShake, setStageShake] = useState<{ active: boolean; offsetX: number; offsetY: number; durationMs: number } | null>(null);
   const [borderImpactRings, setBorderImpactRings] = useState<BorderImpactRingEffect[]>([]);
@@ -432,10 +431,10 @@ export function GamePlayView() {
       <main className="shell">
         <section className="entry-card">
           <h1>场景未就绪</h1>
-          <p>当前 store 尚未生成第 3 关 gameState，请先回到选关页重新进入。</p>
+          <p>当前 store 尚未生成第 3 关 gameState，请重新进入当前关卡。</p>
           <div className="action-row">
-            <button type="button" className="ghost-button" onClick={backToSelect}>
-              返回选关
+            <button type="button" className="ghost-button" onClick={startSelectedLevel}>
+              重新进入关卡
             </button>
           </div>
         </section>
@@ -455,6 +454,7 @@ export function GamePlayView() {
       headBall.position.y - headBall.radius < 0 ||
       headBall.position.y + headBall.radius > gameState.viewport.height
     : false;
+  const statusNotice = levelState === "playing" && isInputLocked ? "锁输入等待" : null;
 
   return (
     <main
@@ -512,6 +512,12 @@ export function GamePlayView() {
           </Fragment>
         )}
       />
+
+      {statusNotice ? (
+        <section className="gameplay-status-banner" aria-label="状态提示">
+          <span>{statusNotice}</span>
+        </section>
+      ) : null}
 
       <section
         className="ui-shell ui-shell--left"
@@ -615,20 +621,6 @@ export function GamePlayView() {
       </section>
 
       {isBorderEditorVisible ? <BorderEditorPanel /> : null}
-
-      <div
-        className="floating-actions"
-        aria-label="Overlay controls"
-        data-ui-mount="overlay"
-        data-ui-consumer="selectors-events"
-      >
-        <button type="button" className="ghost-button" onClick={backToSelect}>
-          返回选关
-        </button>
-        <button type="button" className="ghost-button" onClick={backToMenu}>
-          返回菜单
-        </button>
-      </div>
     </main>
   );
 }
