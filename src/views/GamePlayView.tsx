@@ -76,6 +76,7 @@ function formatVector(vector: { x: number; y: number } | null | undefined) {
 
 export function GamePlayView() {
   const isHudPlaceholderVisible = false;
+  const isBorderEditorVisible = false;
   const currentLevelId = useGameStore(gameStoreSelectors.selectCurrentLevelId);
   const gameState = useGameStore(gameStoreSelectors.selectGameState);
   const score = useGameStore(uiStateSelectors.score);
@@ -530,7 +531,7 @@ export function GamePlayView() {
         </ul>
       </section>
 
-      <BorderEditorPanel />
+      {isBorderEditorVisible ? <BorderEditorPanel /> : null}
 
       <div
         className="floating-actions"
