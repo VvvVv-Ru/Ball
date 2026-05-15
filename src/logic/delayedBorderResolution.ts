@@ -11,14 +11,41 @@ function deactivateBorder(border: Border): Border {
   };
 }
 
-function deactivateBorderById(gameState: GameState, borderId: string) {
+function deactivateBorderSegment(border: Border, segmentIndex: number): Border {
+  if (!border.segments[segmentIndex]) {
+    return border;
+  }
+
+  const nextSegments = border.segments.map((segment, index) => (
+    index === segmentIndex
+      ? {
+          ...segment,
+          active: false,
+        }
+      : segment
+  ));
+  const hasActiveSegment = nextSegments.some((segment) => segment.active);
+
+  return {
+    ...border,
+    active: hasActiveSegment,
+    segments: nextSegments,
+  };
+}
+
+export function deactivateBorderTargetById(gameState: GameState, borderId: string, segmentIndex: number | null) {
   return gameState.playfield.borders.map((border) => (
-    border.id === borderId ? deactivateBorder(border) : border
+    border.id === borderId
+      ? segmentIndex === null
+        ? deactivateBorder(border)
+        : deactivateBorderSegment(border, segmentIndex)
+      : border
   ));
 }
 
 export function resolveNoNextBallBorderClear(gameState: GameState): GameState {
   const pendingBorderId = gameState.rule.pendingBorderId;
+  const pendingBorderSegmentIndex = gameState.rule.pendingBorderSegmentIndex;
 
   if (!pendingBorderId) {
     return gameState;
@@ -28,13 +55,14 @@ export function resolveNoNextBallBorderClear(gameState: GameState): GameState {
     ...gameState,
     playfield: {
       ...gameState.playfield,
-      borders: deactivateBorderById(gameState, pendingBorderId),
+      borders: deactivateBorderTargetById(gameState, pendingBorderId, pendingBorderSegmentIndex),
     },
     rule: {
       ...gameState.rule,
       delayedBorderState: "idle",
       pendingBorderId: null,
       pendingBorderSide: null,
+      pendingBorderSegmentIndex: null,
       pendingBorderColor: null,
       specialBounceTriggered: false,
       lastSpecialBounceBorderId: pendingBorderId,
@@ -47,7 +75,7 @@ export function resolveDelayedBorderTrigger(gameState: GameState, borderId: stri
     ...gameState,
     playfield: {
       ...gameState.playfield,
-      borders: deactivateBorderById(gameState, borderId),
+      borders: deactivateBorderTargetById(gameState, borderId, gameState.rule.pendingBorderSegmentIndex),
     },
     isInputLocked: false,
     rule: {
@@ -55,6 +83,7 @@ export function resolveDelayedBorderTrigger(gameState: GameState, borderId: stri
       delayedBorderState: "idle",
       pendingBorderId: null,
       pendingBorderSide: null,
+      pendingBorderSegmentIndex: null,
       pendingBorderColor: null,
       specialBounceTriggered: true,
       lastSpecialBounceBorderId: borderId,

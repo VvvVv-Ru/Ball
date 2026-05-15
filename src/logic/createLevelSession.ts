@@ -184,6 +184,7 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
     collision: {
       lastCollisionBorderId: null,
       lastCollisionSide: null,
+      lastCollisionSegmentIndex: null,
       lastCollisionType: null,
       lastCollisionBorderColor: null,
       lastCollisionHeadColor: null,
@@ -197,6 +198,7 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
       delayedBorderState: "idle",
       pendingBorderId: null,
       pendingBorderSide: null,
+      pendingBorderSegmentIndex: null,
       pendingBorderColor: null,
       specialBounceTriggered: false,
       lastSpecialBounceBorderId: null,

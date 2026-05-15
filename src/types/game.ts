@@ -390,6 +390,7 @@ export interface MotionState {
 export interface CollisionState {
   lastCollisionBorderId: string | null;
   lastCollisionSide: BorderSide | null;
+  lastCollisionSegmentIndex: number | null;
   lastCollisionType: CollisionType | null;
   lastCollisionBorderColor: BallColorKey | null;
   lastCollisionHeadColor: BallColorKey | null;
@@ -405,6 +406,7 @@ export interface RuleState {
   delayedBorderState: "idle" | "pending";
   pendingBorderId: string | null;
   pendingBorderSide: BorderSide | null;
+  pendingBorderSegmentIndex: number | null;
   pendingBorderColor: BallColorKey | null;
   specialBounceTriggered: boolean;
   lastSpecialBounceBorderId: string | null;

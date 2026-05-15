@@ -37,6 +37,58 @@ function getBorderBySide(gameState: GameState, side: Border["side"]) {
   return gameState.playfield.borders.find((border) => border.side === side && border.active) ?? null;
 }
 
+function getBorderTravelOffset(border: Border, position: Vector2) {
+  const rawOffset = border.side === "top" || border.side === "bottom"
+    ? position.x - border.bounds.x
+    : position.y - border.bounds.y;
+
+  return Math.min(border.fullLength, Math.max(0, rawOffset));
+}
+
+function getSegmentIndexAtOffset(border: Border, offset: number) {
+  return border.segments.findIndex((segment) => {
+    if (!segment.active) {
+      return false;
+    }
+
+    const segmentEnd = segment.start + segment.length;
+    const isLastSegment = segmentEnd >= border.fullLength;
+
+    return isLastSegment
+      ? offset >= segment.start && offset <= segmentEnd
+      : offset >= segment.start && offset < segmentEnd;
+  });
+}
+
+function getCollisionTarget(
+  gameState: GameState,
+  side: Border["side"],
+  currentHeadPosition: Vector2,
+  nextHeadPosition: Vector2,
+  time: number,
+) {
+  const border = getBorderBySide(gameState, side);
+
+  if (!border) {
+    return null;
+  }
+
+  const resolvedPosition = {
+    x: currentHeadPosition.x + (nextHeadPosition.x - currentHeadPosition.x) * time,
+    y: currentHeadPosition.y + (nextHeadPosition.y - currentHeadPosition.y) * time,
+  };
+  const segmentIndex = getSegmentIndexAtOffset(border, getBorderTravelOffset(border, resolvedPosition));
+
+  if (segmentIndex === -1) {
+    return null;
+  }
+
+  return {
+    border,
+    segmentIndex,
+  };
+}
+
 function getCollisionCandidates(current: Vector2, next: Vector2, bounds: ReturnType<typeof getInnerBounds>) {
   const deltaX = next.x - current.x;
   const deltaY = next.y - current.y;
@@ -87,22 +139,42 @@ export function resolveHeadBorderCollision(
     return null;
   }
 
-  const earliestTime = Math.max(0, Math.min(...candidates.map((candidate) => candidate.time)));
-  const hitSides = candidates
-    .filter((candidate) => Math.abs(candidate.time - earliestTime) <= COLLISION_TIME_TOLERANCE)
-    .map((candidate) => candidate.side);
-  const primarySide = hitSides[0];
-  const border = primarySide ? getBorderBySide(gameState, primarySide) : null;
+  const candidateTimes = Array.from(new Set(candidates.map((candidate) => Math.max(0, candidate.time)).sort((left, right) => left - right)));
 
-  if (!primarySide || !border) {
+  let primarySide: Border["side"] | null = null;
+  let border: Border | null = null;
+  let hitSides: Border["side"][] = [];
+  let segmentIndex: number | null = null;
+  let collisionTime = 0;
+
+  for (const candidateTime of candidateTimes) {
+    const hitCandidates = candidates.filter((candidate) => Math.abs(candidate.time - candidateTime) <= COLLISION_TIME_TOLERANCE);
+    const primaryCandidate = hitCandidates[0] ?? null;
+    const collisionTarget = primaryCandidate
+      ? getCollisionTarget(gameState, primaryCandidate.side, currentHeadPosition, nextHeadPosition, candidateTime)
+      : null;
+
+    if (!primaryCandidate || !collisionTarget) {
+      continue;
+    }
+
+    primarySide = primaryCandidate.side;
+    border = collisionTarget.border;
+    segmentIndex = collisionTarget.segmentIndex;
+    collisionTime = candidateTime;
+    hitSides = hitCandidates.map((candidate) => candidate.side);
+    break;
+  }
+
+  if (!primarySide || !border || segmentIndex === null) {
     return null;
   }
 
   const deltaX = nextHeadPosition.x - currentHeadPosition.x;
   const deltaY = nextHeadPosition.y - currentHeadPosition.y;
   const resolvedPosition = {
-    x: Math.min(bounds.maxX, Math.max(bounds.minX, currentHeadPosition.x + deltaX * earliestTime)),
-    y: Math.min(bounds.maxY, Math.max(bounds.minY, currentHeadPosition.y + deltaY * earliestTime)),
+    x: Math.min(bounds.maxX, Math.max(bounds.minX, currentHeadPosition.x + deltaX * collisionTime)),
+    y: Math.min(bounds.maxY, Math.max(bounds.minY, currentHeadPosition.y + deltaY * collisionTime)),
   };
   const reflectedVelocity = reflectVectorBySides(currentVelocity, hitSides);
   const nextVelocity = {
@@ -110,7 +182,8 @@ export function resolveHeadBorderCollision(
     y: reflectedVelocity.y * bounceRestitution,
   };
   const afterVector = getVectorFromVelocity(nextVelocity) ?? currentVector;
-  const borderColorKey = BORDER_COLOR_KEY_MAP[border.color.toLowerCase()] ?? null;
+  const segmentColor = border.segments[segmentIndex]?.color ?? border.color;
+  const borderColorKey = BORDER_COLOR_KEY_MAP[segmentColor.toLowerCase()] ?? null;
   const collisionType: CollisionType = borderColorKey === gameState.currentHeadColor ? "match" : "mismatch";
 
   return {
@@ -119,6 +192,7 @@ export function resolveHeadBorderCollision(
     collision: {
       borderId: border.id,
       side: border.side,
+      segmentIndex,
       type: collisionType,
       borderColor: borderColorKey,
       headColor: gameState.currentHeadColor,

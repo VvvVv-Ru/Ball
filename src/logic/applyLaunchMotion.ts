@@ -31,6 +31,18 @@ function getRemainingActiveBorders(gameState: GameState) {
   return gameState.playfield.borders.filter((border) => border.active).length;
 }
 
+function isPendingCollisionMatch(gameState: GameState, collision: NonNullable<HeadCollisionResult>) {
+  if (gameState.rule.delayedBorderState !== "pending" || !gameState.rule.pendingBorderId) {
+    return false;
+  }
+
+  if (collision.borderId !== gameState.rule.pendingBorderId) {
+    return false;
+  }
+
+  return gameState.rule.pendingBorderSegmentIndex === null || collision.segmentIndex === gameState.rule.pendingBorderSegmentIndex;
+}
+
 function isHeadAlreadyTouchingSide(gameState: GameState, side: BorderSide) {
   const headBall = gameState.ballQueue.balls[gameState.headIndex];
 
@@ -240,11 +252,7 @@ export function advanceHeadMotion(
 
     if (stepCollision) {
       collisionResult = stepCollision;
-      isDelayedBorderTrigger = Boolean(
-        gameState.rule.delayedBorderState === "pending"
-        && gameState.rule.pendingBorderId
-        && stepCollision.collision.borderId === gameState.rule.pendingBorderId,
-      );
+      isDelayedBorderTrigger = isPendingCollisionMatch(gameState, stepCollision.collision);
       borderImpact = getBorderImpact(stepCollision, gameState, now, isDelayedBorderTrigger);
       currentPosition = { ...stepCollision.resolvedPosition };
       currentVelocity = stepCollision.collision.type === "mismatch" || isDelayedBorderTrigger
@@ -275,6 +283,7 @@ export function advanceHeadMotion(
     ? {
         lastCollisionBorderId: collisionResult.collision.borderId,
         lastCollisionSide: collisionResult.collision.side,
+        lastCollisionSegmentIndex: collisionResult.collision.segmentIndex,
         lastCollisionType: collisionResult.collision.type,
         lastCollisionBorderColor: collisionResult.collision.borderColor,
         lastCollisionHeadColor: collisionResult.collision.headColor,

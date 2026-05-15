@@ -1,6 +1,7 @@
 import { level1Config } from "./level1";
 import { level2Config } from "./level2";
 import { level3Config } from "./level3";
+import { level4Config } from "./level4";
 import type { LevelConfig, LevelId } from "../types/game";
 
 const LEVEL_IDS: LevelId[] = [
@@ -18,12 +19,13 @@ const LEVEL_IDS: LevelId[] = [
   "level12",
 ];
 
-const INTEGRATED_LEVEL_IDS = new Set<LevelId>(["level1", "level2", "level3"]);
+const INTEGRATED_LEVEL_IDS = new Set<LevelId>(["level1", "level2", "level3", "level4"]);
 
 const LEVEL_BASE_CONFIGS: Partial<Record<LevelId, LevelConfig>> = {
   level1: level1Config,
   level2: level2Config,
   level3: level3Config,
+  level4: level4Config,
 };
 
 function cloneLevelConfig(baseConfig: LevelConfig): LevelConfig {

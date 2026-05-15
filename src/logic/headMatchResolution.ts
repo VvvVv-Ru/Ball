@@ -1,5 +1,5 @@
 import type { GameState, Vector2 } from "../types/game";
-import { resolveNoNextBallBorderClear } from "./delayedBorderResolution";
+import { deactivateBorderTargetById, resolveNoNextBallBorderClear } from "./delayedBorderResolution";
 import { getQueueOffsets, samplePointOnPath, trimPath } from "./motionMath";
 
 function getTailBufferDistance(speed: number) {
@@ -42,9 +42,24 @@ function deactivateBordersByColor(gameState: GameState, color: string | null) {
   });
 }
 
+function getMatchedSegmentIndex(gameState: GameState, borderId: string) {
+  if (gameState.levelId !== "level4") {
+    return null;
+  }
+
+  const matchedBorder = gameState.playfield.borders.find((border) => border.id === borderId) ?? null;
+
+  if (!matchedBorder || matchedBorder.segments.length <= 1) {
+    return null;
+  }
+
+  return gameState.collision.lastCollisionSegmentIndex;
+}
+
 export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vector2, borderId: string): GameState {
   const removedBall = gameState.ballQueue.balls[gameState.headIndex] ?? null;
   const matchedBorder = gameState.playfield.borders.find((border) => border.id === borderId) ?? null;
+  const matchedSegmentIndex = getMatchedSegmentIndex(gameState, borderId);
   const shouldClearSameColorBordersImmediately = gameState.levelId === "level1";
   const remainingBalls = rebuildRemainingBallsWithInheritedFrontSizes(gameState);
   const queueOffsets = getQueueOffsets(
@@ -99,6 +114,7 @@ export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vec
       delayedBorderState: shouldClearSameColorBordersImmediately ? "idle" : hasNextHead ? "pending" : "idle",
       pendingBorderId: shouldClearSameColorBordersImmediately ? null : borderId,
       pendingBorderSide: shouldClearSameColorBordersImmediately ? null : gameState.collision.lastCollisionSide,
+      pendingBorderSegmentIndex: shouldClearSameColorBordersImmediately ? null : matchedSegmentIndex,
       pendingBorderColor: shouldClearSameColorBordersImmediately ? null : gameState.collision.lastCollisionBorderColor,
       specialBounceTriggered: false,
       lastSpecialBounceBorderId: null,
@@ -111,5 +127,27 @@ export function resolveHeadMatch(gameState: GameState, resolvedHeadPosition: Vec
     return nextGameState;
   }
 
-  return hasNextHead ? nextGameState : resolveNoNextBallBorderClear(nextGameState);
+  if (hasNextHead) {
+    return nextGameState;
+  }
+
+  if (matchedSegmentIndex !== null) {
+    return resolveNoNextBallBorderClear({
+      ...nextGameState,
+      playfield: {
+        ...nextGameState.playfield,
+        borders: deactivateBorderTargetById(nextGameState, borderId, matchedSegmentIndex),
+      },
+      rule: {
+        ...nextGameState.rule,
+        delayedBorderState: "idle",
+        pendingBorderId: null,
+        pendingBorderSide: null,
+        pendingBorderSegmentIndex: null,
+        pendingBorderColor: null,
+      },
+    });
+  }
+
+  return resolveNoNextBallBorderClear(nextGameState);
 }
