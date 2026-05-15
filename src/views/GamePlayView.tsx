@@ -142,12 +142,17 @@ export function GamePlayView() {
   const softBallVisuals = useSoftBallVisuals(gameState);
 
   useEffect(() => {
-    const unsubscribe = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, () => {
+    const unsubscribeMatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, () => {
       void audioService.playSfx("match");
     });
 
+    const unsubscribeMismatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, () => {
+      void audioService.playSfx("mismatch");
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeMatch();
+      unsubscribeMismatch();
     };
   }, []);
 

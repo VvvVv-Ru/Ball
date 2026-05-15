@@ -23,6 +23,11 @@ export const AUDIO_MANIFEST = {
       volume: 0.62,
       minIntervalMs: 48,
     },
+    mismatch: {
+      src: "/audio/sfx/mismatch.wav",
+      volume: 0.68,
+      minIntervalMs: 72,
+    },
   },
   bgm: {
     gameplay: {
