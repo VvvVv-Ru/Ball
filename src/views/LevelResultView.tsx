@@ -101,9 +101,9 @@ export function LevelResultView() {
             {isResultUiVisible ? (
               <div className="flow-result-ui">
                 <strong className="flow-result-time" aria-label="本关总用时">{timeLabel}</strong>
-                <button type="button" className="flow-image-button flow-result-button" onClick={handlePrimaryAction} aria-label={nextLevelName}>
+                <button type="button" className="flow-image-button flow-primary-button flow-result-button" onClick={handlePrimaryAction} aria-label={nextLevelName}>
                   <img className="flow-button-image" src="/ui/flow-button.png" alt="" aria-hidden="true" />
-                  <span className="flow-button-label">{nextLevelName}</span>
+                  <span className="flow-button-label flow-button-label--primary">{nextLevelName}</span>
                 </button>
               </div>
             ) : null}

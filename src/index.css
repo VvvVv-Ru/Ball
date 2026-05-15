@@ -132,6 +132,13 @@ button {
   line-height: 0;
 }
 
+.flow-primary-button {
+  width: min(100%, 224px);
+  min-width: 0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
 .flow-button-image {
   display: block;
   width: 100%;
@@ -153,8 +160,13 @@ button {
   pointer-events: none;
 }
 
+.flow-button-label--primary {
+  padding-inline: 22px;
+  font-size: clamp(13px, 1.96vw, 20px);
+}
+
 .flow-start-button {
-  min-width: min(100%, 320px);
+  width: min(100%, 224px);
 }
 
 .flow-result-time {
@@ -162,10 +174,12 @@ button {
   line-height: 1;
   color: #000000;
   font-variant-numeric: tabular-nums;
+  transform: translateY(-20px);
 }
 
 .flow-result-button {
-  min-width: min(100%, 320px);
+  width: min(100%, 224px);
+  margin-top: 40px;
 }
 
 .flow-card__status {
@@ -793,11 +807,11 @@ button {
   }
 
   .flow-start-button {
-    min-width: min(100%, 280px);
+    width: min(100%, 196px);
   }
 
   .flow-result-button {
-    min-width: min(100%, 280px);
+    width: min(100%, 196px);
   }
 
   .stage-overlay-layer {

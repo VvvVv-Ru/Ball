@@ -17,9 +17,9 @@ export function LevelStartView() {
       <div className="stage-shell">
         <section className="stage-frame stage-frame--flow" aria-label="开始界面舞台">
           <div className="flow-stage-content flow-stage-content--start-only">
-            <button type="button" className="flow-image-button flow-start-button" onClick={handleEnterGameplay} aria-label={currentLevelName}>
+            <button type="button" className="flow-image-button flow-primary-button flow-start-button" onClick={handleEnterGameplay} aria-label={currentLevelName}>
               <img className="flow-button-image" src="/ui/flow-button.png" alt="" aria-hidden="true" />
-              <span className="flow-button-label">{currentLevelName}</span>
+              <span className="flow-button-label flow-button-label--primary">{currentLevelName}</span>
             </button>
           </div>
         </section>
