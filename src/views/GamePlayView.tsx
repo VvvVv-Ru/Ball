@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { audioService } from "../audio/audioService";
 import { Board } from "../engine/Board";
 import { gameUiEventBus } from "../store/gameUiEventBus";
 import { gameStoreSelectors, useGameStore } from "../store/useGameStore";
@@ -136,6 +137,16 @@ export function GamePlayView() {
   const comboPopups = useComboPopups(gameState, cameraFollow);
   const matchImpactParticles = useMatchImpactParticles(gameState);
   const softBallVisuals = useSoftBallVisuals(gameState);
+
+  useEffect(() => {
+    const unsubscribe = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, () => {
+      void audioService.playSfx("match");
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     return () => {

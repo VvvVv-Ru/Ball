@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { audioService } from "./audio/audioService";
 import { useGameStore } from "./store/useGameStore";
 import { GamePlayView } from "./views/GamePlayView";
 import { LevelResultView } from "./views/LevelResultView";
@@ -44,6 +45,32 @@ export default function App() {
 
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash}`);
   }, [currentLevelId, scene]);
+
+  useEffect(() => {
+    const ensureGlobalBgm = () => {
+      void audioService.playBgm("gameplay");
+    };
+
+    ensureGlobalBgm();
+
+    const retryAutoplay = () => {
+      ensureGlobalBgm();
+    };
+
+    window.addEventListener("pointerdown", retryAutoplay);
+    window.addEventListener("keydown", retryAutoplay);
+
+    return () => {
+      window.removeEventListener("pointerdown", retryAutoplay);
+      window.removeEventListener("keydown", retryAutoplay);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      audioService.stopAll();
+    };
+  }, []);
 
   if (gameState?.status === "failed") {
     return <LevelResultView />;
