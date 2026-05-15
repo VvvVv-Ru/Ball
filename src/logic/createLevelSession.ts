@@ -65,6 +65,16 @@ export function createLevel3InitialGameState(levelConfig: LevelConfig): GameStat
         light: { ...levelConfig.gameplay.tuning.borderImpactShake.light },
         medium: { ...levelConfig.gameplay.tuning.borderImpactShake.medium },
       },
+      stageFrameMismatchGlow: {
+        enabled: levelConfig.gameplay.tuning.stageFrameMismatchGlow.enabled,
+        color: levelConfig.gameplay.tuning.stageFrameMismatchGlow.color,
+        peakOpacity: levelConfig.gameplay.tuning.stageFrameMismatchGlow.peakOpacity,
+        edgeWidthPx: levelConfig.gameplay.tuning.stageFrameMismatchGlow.edgeWidthPx,
+        blurPx: levelConfig.gameplay.tuning.stageFrameMismatchGlow.blurPx,
+        spreadPx: levelConfig.gameplay.tuning.stageFrameMismatchGlow.spreadPx,
+        durationMs: levelConfig.gameplay.tuning.stageFrameMismatchGlow.durationMs,
+        easing: levelConfig.gameplay.tuning.stageFrameMismatchGlow.easing,
+      },
       cameraFollow: {
         enabled: levelConfig.gameplay.tuning.cameraFollow.enabled,
         launchOnlyAfterStart: levelConfig.gameplay.tuning.cameraFollow.launchOnlyAfterStart,

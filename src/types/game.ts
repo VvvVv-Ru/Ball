@@ -127,6 +127,17 @@ export interface BorderImpactRingConfig {
   alphaFade: boolean;
 }
 
+export interface StageFrameMismatchGlowConfig {
+  enabled: boolean;
+  color: string;
+  peakOpacity: number;
+  edgeWidthPx: number;
+  blurPx: number;
+  spreadPx: number;
+  durationMs: number;
+  easing: string;
+}
+
 export interface CameraFollowConfig {
   enabled: boolean;
   launchOnlyAfterStart: boolean;
@@ -198,6 +209,7 @@ export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
   projectile: ProjectileTuningConfig;
   borderImpactShake: BorderImpactShakeConfig;
+  stageFrameMismatchGlow: StageFrameMismatchGlowConfig;
   cameraFollow: CameraFollowConfig;
   borderImpactRing: BorderImpactRingConfig;
   matchImpactParticles: MatchImpactParticleConfig;

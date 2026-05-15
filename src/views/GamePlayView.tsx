@@ -5,7 +5,7 @@ import { Board } from "../engine/Board";
 import { gameUiEventBus } from "../store/gameUiEventBus";
 import { gameStoreSelectors, useGameStore } from "../store/useGameStore";
 import { uiStateSelectors } from "../store/uiSelectors";
-import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeConfig, InputDirection, PointerGesturePayload, PointerInputSource, ShakeIntensity } from "../types/game";
+import type { BorderImpactRingConfig, BorderImpactRingEffect, BorderImpactShakeConfig, InputDirection, PointerGesturePayload, PointerInputSource, ShakeIntensity, StageFrameMismatchGlowConfig } from "../types/game";
 import { UI_EVENT_NAMES } from "../types/uiContract";
 import type { BorderImpactPayload } from "../types/uiContract";
 import { BorderEditorPanel } from "./BorderEditorPanel";
@@ -127,9 +127,12 @@ export function GamePlayView() {
   const startSelectedLevel = useGameStore((state) => state.startSelectedLevel);
   const [latestUiEvent, setLatestUiEvent] = useState<string>("-");
   const [stageShake, setStageShake] = useState<{ active: boolean; offsetX: number; offsetY: number; durationMs: number } | null>(null);
+  const [stageFrameMismatchGlow, setStageFrameMismatchGlow] = useState<{ active: boolean; color: string; peakOpacity: number; edgeWidthPx: number; blurPx: number; spreadPx: number; durationMs: number; easing: string } | null>(null);
   const [borderImpactRings, setBorderImpactRings] = useState<BorderImpactRingEffect[]>([]);
   const shakeTimeoutRef = useRef<number | null>(null);
   const shakeRafRef = useRef<number | null>(null);
+  const mismatchGlowTimeoutRef = useRef<number | null>(null);
+  const mismatchGlowRafRef = useRef<number | null>(null);
   const ringCleanupTimeoutRef = useRef<number | null>(null);
   const lastShakeStartedAtRef = useRef<number>(-Infinity);
   const activeShakeIntensityRef = useRef<ShakeIntensity | null>(null);
@@ -156,6 +159,14 @@ export function GamePlayView() {
 
       if (shakeRafRef.current !== null) {
         window.cancelAnimationFrame(shakeRafRef.current);
+      }
+
+      if (mismatchGlowTimeoutRef.current !== null) {
+        window.clearTimeout(mismatchGlowTimeoutRef.current);
+      }
+
+      if (mismatchGlowRafRef.current !== null) {
+        window.cancelAnimationFrame(mismatchGlowRafRef.current);
       }
 
       if (ringCleanupTimeoutRef.current !== null) {
@@ -264,8 +275,45 @@ export function GamePlayView() {
     });
   }
 
+  function triggerStageFrameMismatchGlow(config: StageFrameMismatchGlowConfig) {
+    if (!config.enabled) {
+      return;
+    }
+
+    if (mismatchGlowTimeoutRef.current !== null) {
+      window.clearTimeout(mismatchGlowTimeoutRef.current);
+      mismatchGlowTimeoutRef.current = null;
+    }
+
+    if (mismatchGlowRafRef.current !== null) {
+      window.cancelAnimationFrame(mismatchGlowRafRef.current);
+      mismatchGlowRafRef.current = null;
+    }
+
+    setStageFrameMismatchGlow(null);
+
+    mismatchGlowRafRef.current = window.requestAnimationFrame(() => {
+      setStageFrameMismatchGlow({
+        active: true,
+        color: config.color,
+        peakOpacity: config.peakOpacity,
+        edgeWidthPx: config.edgeWidthPx,
+        blurPx: config.blurPx,
+        spreadPx: config.spreadPx,
+        durationMs: config.durationMs,
+        easing: config.easing,
+      });
+      mismatchGlowRafRef.current = null;
+      mismatchGlowTimeoutRef.current = window.setTimeout(() => {
+        setStageFrameMismatchGlow(null);
+        mismatchGlowTimeoutRef.current = null;
+      }, config.durationMs);
+    });
+  }
+
   useEffect(() => {
     const borderImpactShakeConfig = gameState?.tuningConfig.borderImpactShake;
+    const stageFrameMismatchGlowConfig = gameState?.tuningConfig.stageFrameMismatchGlow;
     const borderImpactRingConfig = gameState?.tuningConfig.borderImpactRing;
     const unsubscribeStateChanged = gameUiEventBus.subscribe(UI_EVENT_NAMES.GAME_STATE_CHANGED, (payload) => {
       setLatestUiEvent(`GAME_STATE_CHANGED:${payload.levelState}`);
@@ -276,6 +324,10 @@ export function GamePlayView() {
     });
     const unsubscribeMismatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MISMATCH, (payload) => {
       setLatestUiEvent(`ON_COLLISION_MISMATCH:${payload.borderId}/${payload.expectedColor}`);
+
+      if (stageFrameMismatchGlowConfig) {
+        triggerStageFrameMismatchGlow(stageFrameMismatchGlowConfig);
+      }
     });
     const unsubscribeMatch = gameUiEventBus.subscribe(UI_EVENT_NAMES.ON_COLLISION_MATCH, (payload) => {
       setLatestUiEvent(`ON_COLLISION_MATCH:${payload.borderId}/${payload.color}`);
@@ -343,7 +395,7 @@ export function GamePlayView() {
       unsubscribeLevelClear();
       unsubscribeLevelFail();
     };
-  }, [gameState?.tuningConfig.borderImpactRing, gameState?.tuningConfig.borderImpactShake]);
+  }, [gameState?.tuningConfig.borderImpactRing, gameState?.tuningConfig.borderImpactShake, gameState?.tuningConfig.stageFrameMismatchGlow]);
 
   useEffect(() => {
     if (!currentLevelId) {
@@ -478,6 +530,7 @@ export function GamePlayView() {
       <Board
         gameState={gameState}
         stageShake={stageShake}
+        stageFrameMismatchGlow={stageFrameMismatchGlow}
         cameraFollow={cameraFollow}
         borderImpactRings={borderImpactRings}
         matchImpactParticles={matchImpactParticles}

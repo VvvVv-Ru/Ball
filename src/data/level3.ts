@@ -40,6 +40,16 @@ const LEVEL3_BORDER_IMPACT_SHAKE = {
     cooldownMs: 100,
   },
 } as const;
+const LEVEL3_STAGE_FRAME_MISMATCH_GLOW = {
+  enabled: true,
+  color: "#d23714",
+  peakOpacity: 1,
+  edgeWidthPx: 18,
+  blurPx: 84,
+  spreadPx: 28,
+  durationMs: 320,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+} as const;
 const LEVEL3_CAMERA_FOLLOW = {
   enabled: true,
   launchOnlyAfterStart: true,
@@ -274,6 +284,16 @@ export const level3Config: LevelConfig = {
         enabled: LEVEL3_BORDER_IMPACT_SHAKE.enabled,
         light: { ...LEVEL3_BORDER_IMPACT_SHAKE.light },
         medium: { ...LEVEL3_BORDER_IMPACT_SHAKE.medium },
+      },
+      stageFrameMismatchGlow: {
+        enabled: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.enabled,
+        color: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.color,
+        peakOpacity: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.peakOpacity,
+        edgeWidthPx: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.edgeWidthPx,
+        blurPx: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.blurPx,
+        spreadPx: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.spreadPx,
+        durationMs: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.durationMs,
+        easing: LEVEL3_STAGE_FRAME_MISMATCH_GLOW.easing,
       },
       cameraFollow: {
         enabled: LEVEL3_CAMERA_FOLLOW.enabled,

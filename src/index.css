@@ -307,6 +307,7 @@ button {
   border-radius: 28px;
   background: #fefcea;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38);
+  isolation: isolate;
   will-change: transform;
 }
 
@@ -345,11 +346,49 @@ button {
     linear-gradient(90deg, #f6e5c6 1px, transparent 1px);
   background-size: 18px 18px;
   pointer-events: none;
+  z-index: 0;
+}
+
+.stage-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 0;
+  box-shadow:
+    inset 0 0 var(--stage-mismatch-glow-edge-width, 18px) var(--stage-mismatch-glow-color-strong, rgba(210, 55, 20, 0.72)),
+    inset 0 0 var(--stage-mismatch-glow-blur, 84px) var(--stage-mismatch-glow-color-medium, rgba(210, 55, 20, 0.46)),
+    inset 0 0 var(--stage-mismatch-glow-spread, 28px) var(--stage-mismatch-glow-color-soft, rgba(210, 55, 20, 0.24));
+}
+
+.stage-frame.is-stage-mismatch-glowing::after {
+  animation: stage-mismatch-glow var(--stage-mismatch-glow-duration, 320ms) var(--stage-mismatch-glow-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes stage-mismatch-glow {
+  0% {
+    opacity: 0;
+  }
+
+  22% {
+    opacity: var(--stage-mismatch-glow-peak-opacity, 1);
+  }
+
+  62% {
+    opacity: calc(var(--stage-mismatch-glow-peak-opacity, 1) * 0.34);
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 .stage-viewport {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 .playfield-camera-layer {

@@ -21,6 +21,35 @@ interface StageShakeState {
   durationMs: number;
 }
 
+interface StageFrameMismatchGlowState {
+  active: boolean;
+  color: string;
+  peakOpacity: number;
+  edgeWidthPx: number;
+  blurPx: number;
+  spreadPx: number;
+  durationMs: number;
+  easing: string;
+}
+
+function toRgba(color: string, alpha: number) {
+  const normalized = color.trim();
+
+  if (/^#([\da-f]{3}|[\da-f]{6})$/i.test(normalized)) {
+    const hex = normalized.slice(1);
+    const fullHex = hex.length === 3
+      ? hex.split("").map((char) => `${char}${char}`).join("")
+      : hex;
+    const red = Number.parseInt(fullHex.slice(0, 2), 16);
+    const green = Number.parseInt(fullHex.slice(2, 4), 16);
+    const blue = Number.parseInt(fullHex.slice(4, 6), 16);
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  return normalized;
+}
+
 function toViewportWidth(value: number, viewport: ViewportConfig) {
   return `${(value / viewport.width) * 100}%`;
 }
@@ -122,6 +151,24 @@ function createStageShakeStyle(stageShake: StageShakeState | null): CSSPropertie
   } as CSSProperties;
 }
 
+function createStageFrameMismatchGlowStyle(stageFrameMismatchGlow: StageFrameMismatchGlowState | null): CSSProperties | undefined {
+  if (!stageFrameMismatchGlow?.active) {
+    return undefined;
+  }
+
+  return {
+    "--stage-mismatch-glow-duration": `${stageFrameMismatchGlow.durationMs}ms`,
+    "--stage-mismatch-glow-easing": stageFrameMismatchGlow.easing,
+    "--stage-mismatch-glow-peak-opacity": `${stageFrameMismatchGlow.peakOpacity}`,
+    "--stage-mismatch-glow-edge-width": `${stageFrameMismatchGlow.edgeWidthPx}px`,
+    "--stage-mismatch-glow-blur": `${stageFrameMismatchGlow.blurPx}px`,
+    "--stage-mismatch-glow-spread": `${stageFrameMismatchGlow.spreadPx}px`,
+    "--stage-mismatch-glow-color-strong": toRgba(stageFrameMismatchGlow.color, 0.72),
+    "--stage-mismatch-glow-color-medium": toRgba(stageFrameMismatchGlow.color, 0.46),
+    "--stage-mismatch-glow-color-soft": toRgba(stageFrameMismatchGlow.color, 0.24),
+  } as CSSProperties;
+}
+
 function createCameraFollowStyle(cameraFollow: CameraFollowVisualState | null): CSSProperties | undefined {
   if (!cameraFollow) {
     return undefined;
@@ -144,6 +191,7 @@ export function Board(
   {
     gameState,
     stageShake = null,
+    stageFrameMismatchGlow = null,
     cameraFollow = null,
     borderImpactRings = [],
     matchImpactParticles = [],
@@ -152,6 +200,7 @@ export function Board(
   }: {
     gameState: GameState;
     stageShake?: StageShakeState | null;
+    stageFrameMismatchGlow?: StageFrameMismatchGlowState | null;
     cameraFollow?: CameraFollowVisualState | null;
     borderImpactRings?: BorderImpactRingEffect[];
     matchImpactParticles?: MatchImpactParticleVisual[];
@@ -162,8 +211,11 @@ export function Board(
   return (
     <div className="stage-shell">
       <section
-        className={`stage-frame${stageShake?.active ? " is-stage-shaking" : ""}`}
-        style={createStageShakeStyle(stageShake)}
+        className={`stage-frame${stageShake?.active ? " is-stage-shaking" : ""}${stageFrameMismatchGlow?.active ? " is-stage-mismatch-glowing" : ""}`}
+        style={{
+          ...(createStageShakeStyle(stageShake) ?? {}),
+          ...(createStageFrameMismatchGlowStyle(stageFrameMismatchGlow) ?? {}),
+        }}
         aria-label="第3关玩法区骨架"
       >
         <div className="stage-viewport">
