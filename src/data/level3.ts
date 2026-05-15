@@ -257,6 +257,11 @@ export const level3Config: LevelConfig = {
     targetLevelId: null,
     isAvailable: false,
   },
+  selectionEntry: {
+    label: "Level 3",
+    isEnabled: true,
+    isPlaceholder: false,
+  },
   viewport: { ...LEVEL3_VIEWPORT },
   playfield,
   ballQueue: playfieldBallQueue,

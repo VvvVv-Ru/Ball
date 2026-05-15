@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { LEVELS, getLevelConfigById } from "../data/levels";
+import { LEVELS } from "../data/levels";
 import { applyInputIntent, getInputVectorFromDirection } from "../logic/applyInputIntent";
 import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
 import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
@@ -117,6 +117,7 @@ function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: G
     updateEditorBorderSegmentColor: () => undefined,
     setResultConfettiConfig: () => undefined,
     startSelectedLevel: () => undefined,
+    enterLevelSelect: () => undefined,
     enterLevelGameplay: () => undefined,
   });
 
@@ -188,9 +189,7 @@ function finalizeGameplayState(gameState: NonNullable<GameStoreState["gameState"
   return syncLevelTimer(resolveLevelClear(resolveOutOfBoundsFailure(gameState, now), now), now);
 }
 
-const initialSelectedLevelId = LEVELS[0]?.id ?? null;
-const initialLevelConfig = getLevelConfigById(initialSelectedLevelId);
-const initialGameState = initialLevelConfig ? createLevel3InitialGameState(initialLevelConfig) : null;
+const initialSelectedLevelId = LEVELS.find((level) => level.selectionEntry.isEnabled)?.id ?? LEVELS[0]?.id ?? null;
 const initialBorderEditorState = {
   isOpen: false,
   selectedBorderId: null,
@@ -289,11 +288,11 @@ function cloneResultConfettiConfig(config: ResultConfettiConfig): ResultConfetti
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   scene: "playing",
-  levelFlowScreen: initialGameState ? "start" : null,
+  levelFlowScreen: "start",
   levels: LEVELS,
   selectedLevelId: initialSelectedLevelId,
-  currentLevelId: initialLevelConfig?.id ?? null,
-  gameState: initialGameState,
+  currentLevelId: null,
+  gameState: null,
   borderEditor: initialBorderEditorState,
   selectLevel: (levelId) => {
     set({ selectedLevelId: levelId });
@@ -311,7 +310,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       scene: "playing",
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
-      levelFlowScreen: "start",
+      levelFlowScreen: "gameplay",
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
@@ -331,7 +330,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       scene: "playing",
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
-      levelFlowScreen: "start",
+      levelFlowScreen: "gameplay",
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
@@ -822,13 +821,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     set({
       scene: "playing",
-      levelFlowScreen: "start",
+      levelFlowScreen: "gameplay",
       currentLevelId: levelConfig.id,
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,
     });
 
     emitGameStateChanged("playing", levelConfig.id, nextGameState);
+  },
+  enterLevelSelect: () => {
+    set((state) => ({
+      scene: state.scene,
+      levelFlowScreen: "level-select",
+    }));
   },
   enterLevelGameplay: () => {
     set((state) => {

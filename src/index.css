@@ -88,6 +88,71 @@ button {
   padding: 24px;
 }
 
+.flow-stage-content--level-select {
+  padding: 0;
+}
+
+.level-select-panel {
+  --level-select-cell-size: 80px;
+  --level-select-gap: 14px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.level-select-grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--level-select-cell-size));
+  gap: var(--level-select-gap);
+  width: fit-content;
+  justify-content: center;
+  align-content: center;
+}
+
+.level-select-card {
+  width: var(--level-select-cell-size);
+  height: var(--level-select-cell-size);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #2d2d39;
+  box-shadow: none;
+  color: #f4f4f7;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.level-select-card:hover {
+  transform: translateY(-4px);
+}
+
+.level-select-card.is-enabled {
+  background: #efb323;
+  color: #2d2d39;
+}
+
+.level-select-card.is-disabled {
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.72);
+  background: #2d2d39;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.level-select-card__label {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.level-select-card__lock {
+  width: 24px;
+  height: 24px;
+}
+
 .flow-result-ui {
   display: grid;
   gap: 24px;
@@ -845,12 +910,40 @@ button {
     padding: 12px;
   }
 
+  .flow-stage-content--level-select {
+    padding: 0;
+  }
+
   .flow-start-button {
     width: min(100%, 196px);
   }
 
   .flow-result-button {
     width: min(100%, 196px);
+  }
+
+  .level-select-panel {
+    gap: 48px;
+  }
+
+  .level-select-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .level-select-card {
+    width: 100%;
+    height: auto;
+    min-height: 120px;
+  }
+
+  .level-select-card__label {
+    font-size: clamp(28px, 8vw, 42px);
+  }
+
+  .level-select-card__lock {
+    width: 40px;
+    height: 40px;
   }
 
   .stage-overlay-layer {

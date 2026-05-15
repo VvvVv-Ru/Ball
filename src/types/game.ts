@@ -1,8 +1,20 @@
 export type Scene = "playing";
 
-export type LevelFlowScreen = "start" | "gameplay";
+export type LevelFlowScreen = "start" | "level-select" | "gameplay";
 
-export type LevelId = "level3";
+export type LevelId =
+  | "level1"
+  | "level2"
+  | "level3"
+  | "level4"
+  | "level5"
+  | "level6"
+  | "level7"
+  | "level8"
+  | "level9"
+  | "level10"
+  | "level11"
+  | "level12";
 
 export type BallColorKey = "red" | "blue" | "yellow";
 
@@ -301,6 +313,12 @@ export interface LevelNextStepConfig {
   isAvailable: boolean;
 }
 
+export interface LevelSelectEntryConfig {
+  label: string;
+  isEnabled: boolean;
+  isPlaceholder: boolean;
+}
+
 export interface BallSoftBallVisualState {
   scaleX: number;
   scaleY: number;
@@ -318,6 +336,7 @@ export interface LevelConfig {
   id: LevelId;
   name: string;
   nextStep: LevelNextStepConfig;
+  selectionEntry: LevelSelectEntryConfig;
   viewport: ViewportConfig;
   playfield: Playfield;
   ballQueue: BallQueue;
@@ -457,6 +476,7 @@ export interface GameStoreState {
   updateEditorBorderSegmentColor: (borderId: string, segmentIndex: number, color: string) => void;
   setResultConfettiConfig: (config: ResultConfettiConfig) => void;
   startSelectedLevel: () => void;
+  enterLevelSelect: () => void;
   enterLevelGameplay: () => void;
 }
 
