@@ -102,6 +102,26 @@ const LEVEL3_COLOR_POOL: Record<BallColorKey, string> = {
   yellow: "#efb323",
 };
 
+export const LEVEL3_RESULT_CONFETTI = {
+  enabled: true,
+  launcherCount: 1,
+  burstCount: 64,
+  speedMin: 0,
+  speedMax: 3600,
+  spreadAngleDeg: 32,
+  lifetimeMs: 1800,
+  gravity: 2400,
+  spinSpeedMin: -740,
+  spinSpeedMax: 720,
+  palette: [LEVEL3_COLOR_POOL.red, LEVEL3_COLOR_POOL.blue, LEVEL3_COLOR_POOL.yellow],
+  resultUiRevealDelayMs: 540,
+  sizeMin: 12,
+  sizeMax: 38,
+  endSizeScale: 0.3,
+  launcherInsetPx: 160,
+  bottomOffsetPx: 10,
+} as const;
+
 const LEVEL3_HEAD_BALL_RADIUS = 34;
 const LEVEL3_REFERENCE_RADII = [100, 86, 74, 64] as const;
 const LEVEL3_BALL_QUEUE_COLORS = ["red", "blue", "yellow", "red"] as const;
@@ -306,6 +326,25 @@ export const level3Config: LevelConfig = {
         wobbleCycles: LEVEL3_SOFT_BALL.wobbleCycles,
         wobbleRotationDeg: LEVEL3_SOFT_BALL.wobbleRotationDeg,
       },
+      resultConfetti: {
+        enabled: LEVEL3_RESULT_CONFETTI.enabled,
+        launcherCount: LEVEL3_RESULT_CONFETTI.launcherCount,
+        burstCount: LEVEL3_RESULT_CONFETTI.burstCount,
+        speedMin: LEVEL3_RESULT_CONFETTI.speedMin,
+        speedMax: LEVEL3_RESULT_CONFETTI.speedMax,
+        spreadAngleDeg: LEVEL3_RESULT_CONFETTI.spreadAngleDeg,
+        lifetimeMs: LEVEL3_RESULT_CONFETTI.lifetimeMs,
+        gravity: LEVEL3_RESULT_CONFETTI.gravity,
+        spinSpeedMin: LEVEL3_RESULT_CONFETTI.spinSpeedMin,
+        spinSpeedMax: LEVEL3_RESULT_CONFETTI.spinSpeedMax,
+        palette: [...LEVEL3_RESULT_CONFETTI.palette],
+        resultUiRevealDelayMs: LEVEL3_RESULT_CONFETTI.resultUiRevealDelayMs,
+        sizeMin: LEVEL3_RESULT_CONFETTI.sizeMin,
+        sizeMax: LEVEL3_RESULT_CONFETTI.sizeMax,
+        endSizeScale: LEVEL3_RESULT_CONFETTI.endSizeScale,
+        launcherInsetPx: LEVEL3_RESULT_CONFETTI.launcherInsetPx,
+        bottomOffsetPx: LEVEL3_RESULT_CONFETTI.bottomOffsetPx,
+      },
     },
   },
   notes: {
@@ -329,5 +368,6 @@ export const LEVEL3_CONSTANTS = {
   borderImpactRing: LEVEL3_BORDER_IMPACT_RING,
   matchImpactParticles: LEVEL3_MATCH_IMPACT_PARTICLES,
   softBall: LEVEL3_SOFT_BALL,
+  resultConfetti: LEVEL3_RESULT_CONFETTI,
   colorPool: LEVEL3_COLOR_POOL,
 } as const;

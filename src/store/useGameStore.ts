@@ -26,6 +26,7 @@ import type {
   HeadBallIndex,
   InputDirection,
   PointerGesturePayload,
+  ResultConfettiConfig,
   Scene,
   Vector2,
 } from "../types/game";
@@ -114,6 +115,7 @@ function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: G
     updateEditorBorder: () => undefined,
     setEditorBorderSegmentCount: () => undefined,
     updateEditorBorderSegmentColor: () => undefined,
+    setResultConfettiConfig: () => undefined,
     startSelectedLevel: () => undefined,
     enterLevelGameplay: () => undefined,
   });
@@ -274,6 +276,17 @@ function getNextSelectedBorderId(selectedBorderId: string | null, borders: Borde
   return borders[0]?.id ?? null;
 }
 
+function getLevelConfigFromCollection(levels: GameStoreState["levels"], levelId: GameStoreState["currentLevelId"]) {
+  return levels.find((level) => level.id === levelId) ?? null;
+}
+
+function cloneResultConfettiConfig(config: ResultConfettiConfig): ResultConfettiConfig {
+  return {
+    ...config,
+    palette: [...config.palette],
+  };
+}
+
 export const useGameStore = create<GameStoreState>((set, get) => ({
   scene: "playing",
   levelFlowScreen: initialGameState ? "start" : null,
@@ -286,7 +299,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ selectedLevelId: levelId });
   },
   loadLevel3Config: () => {
-    const levelConfig = getLevelConfigById("level3");
+    const levelConfig = getLevelConfigFromCollection(get().levels, "level3");
 
     if (!levelConfig) {
       return;
@@ -306,7 +319,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     emitGameStateChanged(get().scene, levelConfig.id, nextGameState);
   },
   resetLevel3State: () => {
-    const levelConfig = getLevelConfigById("level3");
+    const levelConfig = getLevelConfigFromCollection(get().levels, "level3");
 
     if (!levelConfig) {
       return;
@@ -756,8 +769,50 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     });
   },
+  setResultConfettiConfig: (config) => {
+    set((state) => {
+      const levelId = state.currentLevelId ?? state.selectedLevelId;
+
+      if (!levelId) {
+        return state;
+      }
+
+      const nextConfig = cloneResultConfettiConfig(config);
+      const nextLevels = state.levels.map((level) => {
+        if (level.id !== levelId) {
+          return level;
+        }
+
+        return {
+          ...level,
+          gameplay: {
+            ...level.gameplay,
+            tuning: {
+              ...level.gameplay.tuning,
+              resultConfetti: cloneResultConfettiConfig(nextConfig),
+            },
+          },
+        };
+      });
+
+      const nextGameState = state.gameState && state.currentLevelId === levelId
+        ? {
+            ...state.gameState,
+            tuningConfig: {
+              ...state.gameState.tuningConfig,
+              resultConfetti: cloneResultConfettiConfig(nextConfig),
+            },
+          }
+        : state.gameState;
+
+      return {
+        levels: nextLevels,
+        gameState: nextGameState,
+      };
+    });
+  },
   startSelectedLevel: () => {
-    const levelConfig = getLevelConfigById(get().selectedLevelId);
+    const levelConfig = getLevelConfigFromCollection(get().levels, get().selectedLevelId);
 
     if (!levelConfig) {
       return;

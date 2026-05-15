@@ -174,6 +174,26 @@ export interface SoftBallConfig {
   wobbleRotationDeg: number;
 }
 
+export interface ResultConfettiConfig {
+  enabled: boolean;
+  launcherCount: number;
+  burstCount: number;
+  speedMin: number;
+  speedMax: number;
+  spreadAngleDeg: number;
+  lifetimeMs: number;
+  gravity: number;
+  spinSpeedMin: number;
+  spinSpeedMax: number;
+  palette: string[];
+  resultUiRevealDelayMs: number;
+  sizeMin: number;
+  sizeMax: number;
+  endSizeScale: number;
+  launcherInsetPx: number;
+  bottomOffsetPx: number;
+}
+
 export interface LevelTuningConfig {
   swipeLaunch: SwipeLaunchTuningConfig;
   projectile: ProjectileTuningConfig;
@@ -182,6 +202,7 @@ export interface LevelTuningConfig {
   borderImpactRing: BorderImpactRingConfig;
   matchImpactParticles: MatchImpactParticleConfig;
   softBall: SoftBallConfig;
+  resultConfetti: ResultConfettiConfig;
 }
 
 export interface BorderImpactRingEffect {
@@ -218,6 +239,33 @@ export interface MatchImpactParticleVisual {
   id: string;
   position: Vector2;
   size: number;
+  rotationDeg: number;
+  opacity: number;
+  color: string;
+}
+
+export interface ResultConfettiParticleSeed {
+  id: string;
+  color: string;
+  initialVelocity: Vector2;
+  size: number;
+  rotationDeg: number;
+  spinDegPerSecond: number;
+}
+
+export interface ResultConfettiBurstEffect {
+  id: string;
+  origin: Vector2;
+  startedAt: number;
+  lifetimeMs: number;
+  particles: ResultConfettiParticleSeed[];
+}
+
+export interface ResultConfettiParticleVisual {
+  id: string;
+  position: Vector2;
+  width: number;
+  height: number;
   rotationDeg: number;
   opacity: number;
   color: string;
@@ -395,6 +443,7 @@ export interface GameStoreState {
   updateEditorBorder: (borderId: string, patch: BorderUpdatePatch) => void;
   setEditorBorderSegmentCount: (borderId: string, segmentCount: number) => void;
   updateEditorBorderSegmentColor: (borderId: string, segmentIndex: number, color: string) => void;
+  setResultConfettiConfig: (config: ResultConfettiConfig) => void;
   startSelectedLevel: () => void;
   enterLevelGameplay: () => void;
 }
