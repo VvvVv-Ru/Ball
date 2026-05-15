@@ -4,6 +4,7 @@ import { applyInputIntent, getInputVectorFromDirection } from "../logic/applyInp
 import { advanceHeadMotion, applyLaunchMotion } from "../logic/applyLaunchMotion";
 import { applyMatchProgress, applyMismatchProgress } from "../logic/collisionProgress";
 import { createLevel3InitialGameState } from "../logic/createLevelSession";
+import { resolveHpZeroFailure } from "../logic/hpZeroFailure";
 import { syncLevelTimer } from "../logic/levelTimer";
 import { resolveLevelClear } from "../logic/levelClear";
 import { areVectorsEffectivelySame } from "../logic/motionMath";
@@ -186,7 +187,7 @@ function emitTimerEvents(previousState: NonNullable<GameStoreState["gameState"]>
 }
 
 function finalizeGameplayState(gameState: NonNullable<GameStoreState["gameState"]>, now: number) {
-  return syncLevelTimer(resolveLevelClear(resolveOutOfBoundsFailure(gameState, now), now), now);
+  return syncLevelTimer(resolveLevelClear(resolveHpZeroFailure(resolveOutOfBoundsFailure(gameState, now), now), now), now);
 }
 
 const initialSelectedLevelId = LEVELS.find((level) => level.selectionEntry.isEnabled)?.id ?? LEVELS[0]?.id ?? null;

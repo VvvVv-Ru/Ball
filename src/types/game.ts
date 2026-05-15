@@ -435,7 +435,7 @@ export interface GameState {
   collision: CollisionState;
   progress: ProgressState;
   rule: RuleState;
-  failReason: "out_of_bounds" | null;
+  failReason: "out_of_bounds" | "hp_zero" | null;
   clearReason: "all_targets_cleared" | null;
 }
 

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { audioService } from "./audio/audioService";
 import { useGameStore } from "./store/useGameStore";
+import { LevelFailView } from "./views/LevelFailView";
 import { GamePlayView } from "./views/GamePlayView";
 import { LevelResultView } from "./views/LevelResultView";
 import { LevelSelectView } from "./views/LevelSelectView";
@@ -38,7 +39,7 @@ export default function App() {
   }, []);
 
   if (gameState?.status === "failed") {
-    return <LevelResultView />;
+    return <LevelFailView />;
   }
 
   if (gameState?.status === "clear") {

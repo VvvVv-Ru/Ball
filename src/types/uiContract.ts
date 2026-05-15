@@ -147,7 +147,7 @@ export interface LevelClearPayload {
 
 export interface LevelFailPayload {
   levelId: string;
-  reason: "out_of_bounds" | "out-of-bounds" | "hp-zero" | "placeholder";
+  reason: NonNullable<GameState["failReason"]> | "placeholder";
 }
 
 export interface UiEventPayloadMap {
