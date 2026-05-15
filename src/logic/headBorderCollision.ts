@@ -3,6 +3,7 @@ import { getSpeedFromVelocity, getVectorFromVelocity } from "./motionMath";
 
 const BORDER_COLOR_KEY_MAP: Record<string, BallColorKey> = {
   "#d23714": "red",
+  "#2d2d39": "red",
   "#255e7d": "blue",
   "#efb323": "yellow",
 };

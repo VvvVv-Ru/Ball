@@ -454,6 +454,7 @@ export interface GameStoreState {
   scene: Scene;
   levelFlowScreen: LevelFlowScreen | null;
   levels: LevelConfig[];
+  playedLevelIds: LevelId[];
   selectedLevelId: LevelId | null;
   currentLevelId: LevelId | null;
   gameState: GameState | null;

@@ -112,6 +112,9 @@ const LEVEL3_COLOR_POOL: Record<BallColorKey, string> = {
   yellow: "#efb323",
 };
 
+const LEVEL3_RIGHT_BORDER_COLOR = "#2d2d39";
+const LEVEL3_FOURTH_BALL_COLOR = "#2d2d39";
+
 export const LEVEL3_RESULT_CONFETTI = {
   enabled: true,
   launcherCount: 1,
@@ -210,7 +213,9 @@ function createLevel3BallQueueConfig(playfield: Playfield): BallQueue {
       id: `level3-ball-${index}`,
       order: index,
       colorKey: spec.colorKey,
-      colorHex: LEVEL3_COLOR_POOL[spec.colorKey],
+      colorHex: index === LEVEL3_BALL_QUEUE_SPECS.length - 1
+        ? LEVEL3_FOURTH_BALL_COLOR
+        : LEVEL3_COLOR_POOL[spec.colorKey],
       radius: spec.radius,
       diameter: spec.radius * 2,
       position: {
@@ -240,9 +245,9 @@ const playfield: Playfield = {
   borderThickness: LEVEL3_BORDER_THICKNESS,
   fill: "transparent",
   borders: [
-    createBorderDefinition("top", LEVEL3_COLOR_POOL.blue, LEVEL3_BORDER_THICKNESS, playfieldRect),
-    createBorderDefinition("right", LEVEL3_COLOR_POOL.red, LEVEL3_BORDER_THICKNESS, playfieldRect),
-    createBorderDefinition("bottom", LEVEL3_COLOR_POOL.red, LEVEL3_BORDER_THICKNESS, playfieldRect),
+    createBorderDefinition("top", LEVEL3_COLOR_POOL.red, LEVEL3_BORDER_THICKNESS, playfieldRect),
+    createBorderDefinition("right", LEVEL3_RIGHT_BORDER_COLOR, LEVEL3_BORDER_THICKNESS, playfieldRect),
+    createBorderDefinition("bottom", LEVEL3_COLOR_POOL.blue, LEVEL3_BORDER_THICKNESS, playfieldRect),
     createBorderDefinition("left", LEVEL3_COLOR_POOL.yellow, LEVEL3_BORDER_THICKNESS, playfieldRect),
   ],
 };

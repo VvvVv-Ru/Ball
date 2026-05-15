@@ -14,12 +14,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function formatSeconds(seconds: number | null) {
-  if (seconds === null) {
-    return "0.0s";
+function formatElapsedTimeMs(elapsedTimeMs: number | null) {
+  if (elapsedTimeMs === null) {
+    return "0.000s";
   }
 
-  return `${seconds.toFixed(1)}s`;
+  return `${(elapsedTimeMs / 1000).toFixed(3)}s`;
 }
 
 function createResultConfettiStyle(particle: ResultConfettiParticleVisual, viewport: ViewportConfig): CSSProperties {
@@ -42,8 +42,8 @@ export function LevelOutcomeView({ outcome }: { outcome: LevelOutcome }) {
   const gameState = useGameStore((state) => state.gameState);
   const nextLevelName = useGameStore(uiStateSelectors.nextLevelName);
   const isNextLevelAvailable = useGameStore(uiStateSelectors.isNextLevelAvailable);
-  const finalElapsedTimeSeconds = useGameStore(uiStateSelectors.finalElapsedTimeSeconds);
-  const elapsedTimeSeconds = useGameStore(uiStateSelectors.elapsedTimeSeconds);
+  const finalElapsedTimeMs = useGameStore(uiStateSelectors.finalElapsedTimeMs);
+  const elapsedTimeMs = useGameStore(uiStateSelectors.elapsedTimeMs);
   const selectLevel = useGameStore((state) => state.selectLevel);
   const startSelectedLevel = useGameStore((state) => state.startSelectedLevel);
   const viewport = gameState?.viewport ?? RESULT_VIEWPORT_FALLBACK;
@@ -54,7 +54,8 @@ export function LevelOutcomeView({ outcome }: { outcome: LevelOutcome }) {
   const [isResultUiVisible, setIsResultUiVisible] = useState(!isClear);
 
   const currentLevelConfig = levels.find((level) => level.id === currentLevelId) ?? null;
-  const timeLabel = formatSeconds(finalElapsedTimeSeconds ?? elapsedTimeSeconds);
+  const displayedElapsedTimeMs = finalElapsedTimeMs ?? elapsedTimeMs;
+  const timeLabel = formatElapsedTimeMs(displayedElapsedTimeMs);
   const nextStepTargetLevelId = currentLevelConfig?.nextStep.targetLevelId ?? null;
   const resultLabel = isClear ? timeLabel : "Lose";
   const primaryButtonLabel = isClear ? nextLevelName : "again";

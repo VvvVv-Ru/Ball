@@ -26,6 +26,7 @@ import type {
   GameStoreState,
   HeadBallIndex,
   InputDirection,
+  LevelId,
   PointerGesturePayload,
   ResultConfettiConfig,
   Scene,
@@ -38,6 +39,8 @@ const IMPACT_NORMAL_BY_SIDE: Record<"top" | "right" | "bottom" | "left", Vector2
   bottom: { x: 0, y: -1 },
   left: { x: 1, y: 0 },
 };
+
+const PLAYED_LEVEL_IDS_STORAGE_KEY = "ball-game-played-level-ids";
 
 function emitSoftBallLaunchTrigger(previousState: NonNullable<GameStoreState["gameState"]>, nextState: NonNullable<GameStoreState["gameState"]>, occurredAt: number) {
   const config = nextState.tuningConfig.softBall;
@@ -96,6 +99,7 @@ function emitGameStateChanged(scene: Scene, levelId: string | null, gameState: G
     scene,
     levelFlowScreen: null,
     levels: [],
+    playedLevelIds: [],
     selectedLevelId: null,
     currentLevelId: levelId as GameStoreState["currentLevelId"],
     gameState,
@@ -190,7 +194,66 @@ function finalizeGameplayState(gameState: NonNullable<GameStoreState["gameState"
   return syncLevelTimer(resolveLevelClear(resolveHpZeroFailure(resolveOutOfBoundsFailure(gameState, now), now), now), now);
 }
 
-const initialSelectedLevelId = LEVELS.find((level) => level.selectionEntry.isEnabled)?.id ?? LEVELS[0]?.id ?? null;
+function getDefaultPlayedLevelIds(levels: GameStoreState["levels"]): LevelId[] {
+  const firstEnabledLevelId = levels.find((level) => level.selectionEntry.isEnabled)?.id;
+  return firstEnabledLevelId ? [firstEnabledLevelId] : [];
+}
+
+function normalizePlayedLevelIds(levels: GameStoreState["levels"], value: unknown): LevelId[] {
+  const defaultPlayedLevelIds = getDefaultPlayedLevelIds(levels);
+  const enabledLevelIdSet = new Set(levels.filter((level) => level.selectionEntry.isEnabled).map((level) => level.id));
+
+  if (!Array.isArray(value)) {
+    return defaultPlayedLevelIds;
+  }
+
+  const normalizedIds = value.filter((levelId): levelId is LevelId => (
+    typeof levelId === "string" && enabledLevelIdSet.has(levelId as LevelId)
+  ));
+
+  return Array.from(new Set([...defaultPlayedLevelIds, ...normalizedIds]));
+}
+
+function loadPlayedLevelIds(levels: GameStoreState["levels"]): LevelId[] {
+  if (typeof window === "undefined") {
+    return getDefaultPlayedLevelIds(levels);
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(PLAYED_LEVEL_IDS_STORAGE_KEY);
+
+    if (!rawValue) {
+      return getDefaultPlayedLevelIds(levels);
+    }
+
+    return normalizePlayedLevelIds(levels, JSON.parse(rawValue));
+  } catch {
+    return getDefaultPlayedLevelIds(levels);
+  }
+}
+
+function persistPlayedLevelIds(playedLevelIds: LevelId[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PLAYED_LEVEL_IDS_STORAGE_KEY, JSON.stringify(playedLevelIds));
+  } catch {
+    // Ignore storage failures and keep runtime progress available.
+  }
+}
+
+function includePlayedLevelId(playedLevelIds: LevelId[], levelId: LevelId) {
+  if (playedLevelIds.includes(levelId)) {
+    return playedLevelIds;
+  }
+
+  return [...playedLevelIds, levelId];
+}
+
+const initialPlayedLevelIds = loadPlayedLevelIds(LEVELS);
+const initialSelectedLevelId = initialPlayedLevelIds[0] ?? LEVELS.find((level) => level.selectionEntry.isEnabled)?.id ?? LEVELS[0]?.id ?? null;
 const initialBorderEditorState = {
   isOpen: false,
   selectedBorderId: null,
@@ -291,6 +354,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   scene: "playing",
   levelFlowScreen: "start",
   levels: LEVELS,
+  playedLevelIds: initialPlayedLevelIds,
   selectedLevelId: initialSelectedLevelId,
   currentLevelId: null,
   gameState: null,
@@ -306,9 +370,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     const nextGameState = createLevel3InitialGameState(levelConfig);
+    const nextPlayedLevelIds = includePlayedLevelId(get().playedLevelIds, levelConfig.id);
+
+    persistPlayedLevelIds(nextPlayedLevelIds);
 
     set({
       scene: "playing",
+      playedLevelIds: nextPlayedLevelIds,
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
       levelFlowScreen: "gameplay",
@@ -326,9 +394,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     const nextGameState = createLevel3InitialGameState(levelConfig);
+    const nextPlayedLevelIds = includePlayedLevelId(get().playedLevelIds, levelConfig.id);
+
+    persistPlayedLevelIds(nextPlayedLevelIds);
 
     set({
       scene: "playing",
+      playedLevelIds: nextPlayedLevelIds,
       selectedLevelId: levelConfig.id,
       currentLevelId: levelConfig.id,
       levelFlowScreen: "gameplay",
@@ -819,10 +891,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     const nextGameState = createLevel3InitialGameState(levelConfig);
+    const nextPlayedLevelIds = includePlayedLevelId(get().playedLevelIds, levelConfig.id);
+
+    persistPlayedLevelIds(nextPlayedLevelIds);
 
     set({
       scene: "playing",
       levelFlowScreen: "gameplay",
+      playedLevelIds: nextPlayedLevelIds,
       currentLevelId: levelConfig.id,
       gameState: nextGameState,
       borderEditor: initialBorderEditorState,

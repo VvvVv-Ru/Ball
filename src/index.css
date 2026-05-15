@@ -125,13 +125,21 @@ button {
   transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
-.level-select-card:hover {
+.level-select-card:hover:not(:disabled) {
   transform: translateY(-4px);
 }
 
-.level-select-card.is-enabled {
+.level-select-card.is-played {
   background: #efb323;
   color: #2d2d39;
+}
+
+.level-select-card.is-unplayed {
+  opacity: 1;
+  color: #2d2d39;
+  background: #979797;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .level-select-card.is-disabled {

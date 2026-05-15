@@ -320,8 +320,20 @@ export function advanceHeadMotion(
   }
 
   if (collisionResult?.collision.type === "match") {
+    const matchResolvedGameState = gameState.levelId === "level1"
+      ? {
+          ...baseNextGameState,
+          motion: {
+            ...baseNextGameState.motion,
+            velocity: { ...collisionResult.nextVelocity },
+            currentVector: collisionResult.collision.afterVector,
+            currentSpeed: collisionResult.collision.afterSpeed,
+          },
+        }
+      : baseNextGameState;
+
     return {
-      nextGameState: resolveHeadMatch(baseNextGameState, resolvedHeadPosition, collisionResult.collision.borderId),
+      nextGameState: resolveHeadMatch(matchResolvedGameState, resolvedHeadPosition, collisionResult.collision.borderId),
       collision: collisionResult.collision,
       borderImpact,
       specialBounce: null,
