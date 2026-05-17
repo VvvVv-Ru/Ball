@@ -14,7 +14,13 @@ import { useCameraFollow } from "./useCameraFollow";
 import { useMatchImpactParticles } from "./useMatchImpactParticles";
 import { useSoftBallVisuals } from "./useSoftBallVisuals";
 
-const MAX_ACTIVE_BORDER_RINGS = 6;
+const RINGS_PER_IMPACT = 2;
+const MAX_ACTIVE_BORDER_RINGS = 12;
+const PRIMARY_RING_STROKE_WIDTH = 0.6;
+const SECONDARY_RING_DURATION_MS = 720;
+const SECONDARY_RING_STROKE_WIDTH = 0.6;
+const SECONDARY_RING_START_SCALE = 0.92;
+const SECONDARY_RING_END_SCALE = 13;
 const HUD_HEART_COUNT = 3;
 const HUD_HEART_ASSETS = {
   filled: "/hud/heart-filled.png",
@@ -87,6 +93,39 @@ function formatHudSeconds(seconds: number | null) {
   }
 
   return `${seconds.toFixed(1)}s`;
+}
+
+function createBorderImpactRingEffects(
+  config: BorderImpactRingConfig,
+  payload: BorderImpactPayload,
+  startedAt: number,
+): BorderImpactRingEffect[] {
+  const primaryRing: BorderImpactRingEffect = {
+    id: `${payload.borderId}-${payload.occurredAt}-ring-1`,
+    center: { ...payload.center },
+    ballRadius: payload.ballRadius,
+    startedAt,
+    durationMs: config.durationMs,
+    strokeWidth: PRIMARY_RING_STROKE_WIDTH,
+    startScale: config.startScale,
+    endScale: config.endScale,
+    easing: config.easing,
+    alphaFade: config.alphaFade,
+  };
+  const secondaryRing: BorderImpactRingEffect = {
+    id: `${payload.borderId}-${payload.occurredAt}-ring-2`,
+    center: { ...payload.center },
+    ballRadius: payload.ballRadius,
+    startedAt,
+    durationMs: SECONDARY_RING_DURATION_MS,
+    strokeWidth: SECONDARY_RING_STROKE_WIDTH,
+    startScale: SECONDARY_RING_START_SCALE,
+    endScale: SECONDARY_RING_END_SCALE,
+    easing: config.easing,
+    alphaFade: config.alphaFade,
+  };
+
+  return [primaryRing, secondaryRing].slice(0, RINGS_PER_IMPACT);
 }
 
 function createComboPopupStyle(position: { x: number; y: number }, viewport: { width: number; height: number }, durationMs: number): CSSProperties {
@@ -260,23 +299,12 @@ export function GamePlayView() {
     }
 
     const now = performance.now();
+    const nextEffects = createBorderImpactRingEffects(config, payload, now);
 
     setBorderImpactRings((current) => {
       const activeEffects = current.filter((effect) => effect.startedAt + effect.durationMs > now);
-      const nextEffect: BorderImpactRingEffect = {
-        id: `${payload.borderId}-${payload.occurredAt}`,
-        center: { ...payload.center },
-        ballRadius: payload.ballRadius,
-        startedAt: now,
-        durationMs: config.durationMs,
-        strokeWidth: config.strokeWidth,
-        startScale: config.startScale,
-        endScale: config.endScale,
-        easing: config.easing,
-        alphaFade: config.alphaFade,
-      };
 
-      return [...activeEffects, nextEffect].slice(-MAX_ACTIVE_BORDER_RINGS);
+      return [...activeEffects, ...nextEffects].slice(-MAX_ACTIVE_BORDER_RINGS);
     });
   }
 

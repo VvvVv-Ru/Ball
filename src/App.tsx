@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { audioService } from "./audio/audioService";
 import { useGameStore } from "./store/useGameStore";
 import { LevelFailView } from "./views/LevelFailView";
@@ -11,6 +11,7 @@ export default function App() {
   const scene = useGameStore((state) => state.scene);
   const levelFlowScreen = useGameStore((state) => state.levelFlowScreen);
   const gameState = useGameStore((state) => state.gameState);
+  const [isClearResultReady, setIsClearResultReady] = useState(false);
 
   useEffect(() => {
     const ensureGlobalBgm = () => {
@@ -38,11 +39,50 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (gameState?.status !== "clear") {
+      setIsClearResultReady(false);
+      return undefined;
+    }
+
+    const ringDurationMs = gameState.tuningConfig.borderImpactRing.enabled
+      ? gameState.tuningConfig.borderImpactRing.durationMs
+      : 0;
+    const matchParticleDurationMs = gameState.tuningConfig.matchImpactParticles.enabled
+      ? gameState.tuningConfig.matchImpactParticles.lifetimeMs
+      : 0;
+    const clearResultDelayMs = Math.max(ringDurationMs, matchParticleDurationMs);
+
+    if (clearResultDelayMs <= 0) {
+      setIsClearResultReady(true);
+      return undefined;
+    }
+
+    setIsClearResultReady(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsClearResultReady(true);
+    }, clearResultDelayMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    gameState?.status,
+    gameState?.tuningConfig.borderImpactRing.durationMs,
+    gameState?.tuningConfig.borderImpactRing.enabled,
+    gameState?.tuningConfig.matchImpactParticles.enabled,
+    gameState?.tuningConfig.matchImpactParticles.lifetimeMs,
+  ]);
+
   if (gameState?.status === "failed") {
     return <LevelFailView />;
   }
 
   if (gameState?.status === "clear") {
+    if (!isClearResultReady) {
+      return <GamePlayView />;
+    }
+
     return <LevelResultView />;
   }
 
